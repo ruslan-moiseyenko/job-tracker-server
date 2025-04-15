@@ -1,0 +1,294 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  jobSearches         JobSearch[]
+  applicationStages   ApplicationStage[]
+  applicationStatuses ApplicationStatus[]
+  companyNotes        CompanyNote[]
+  comments            Comment[]
+  Event               Event[]
+}
+
+// for every new job search
+model JobSearch {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // relations
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
+}
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  website     String?
+  industry    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // relations
+  applications         JobApplication[]
+  notes                CompanyNote[]
+  CompanyContactPerson CompanyContactPerson[]
+  links                CompanyLink[]
+
+  @@index([name]) // for quick search
+}
+
+// links for a company (off site, profiles, job-boards, ect...)
+model CompanyLink {
+  id    String   @id @default(uuid())
+  url   String
+  title String?
+  type  LinkType // link type (off site, LinkedIn, GitHub и т.д.)
+
+  // Связь с компанией
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// for specific vacancy
+model JobApplication {
+  id              String   @id @default(uuid())
+  positionTitle   String
+  jobDescription  String? // to keep formatted job description
+  jobLinks        String[] // array of links for the description
+  applicationDate DateTime @default(now())
+  lastUpdated     DateTime @updatedAt
+  customColor     String? // color for the whole row in a table
+
+  // relations
+  jobSearchId    String
+  jobSearch      JobSearch          @relation(fields: [jobSearchId], references: [id], onDelete: Cascade)
+  companyId      String
+  company        Company            @relation(fields: [companyId], references: [id])
+  currentStageId String?
+  currentStage   ApplicationStage?  @relation(fields: [currentStageId], references: [id])
+  finalStatusId  String?
+  finalStatus    ApplicationStatus? @relation(fields: [finalStatusId], references: [id])
+
+  comments       Comment[]
+  contactPersons JobApplicationContactPerson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Event     Event[]
+
+  @@index([companyId])
+  @@index([jobSearchId])
+  @@index([applicationDate])
+}
+
+// adjustable stages
+model ApplicationStage {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  color       String // stage color
+  order       Int // stages order
+
+  // relations
+  userId       String?
+  user         User?            @relation(fields: [userId], references: [id]) // null для системных этапов
+  applications JobApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Event     Event[]
+
+  @@unique([userId, name])
+  @@index([userId, order])
+}
+
+// status for the whole application process
+model ApplicationStatus {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  color       String
+  isDefault   Boolean @default(false)
+
+  // relations
+  userId       String?
+  user         User?            @relation(fields: [userId], references: [id])
+  applications JobApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name]) // ???
+}
+
+// company's representative
+model ContactPerson {
+  id          String  @id @default(uuid())
+  firstName   String?
+  lastName    String?
+  position    String?
+  email       String?
+  phone       String?
+  socialLinks Json?
+
+  // relations
+  applications JobApplicationContactPerson[]
+  companies    CompanyContactPerson[] // Новая связь с компаниями
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// connections between a contact person and a company
+model CompanyContactPerson {
+  id              String        @id @default(uuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactPersonId String
+  contactPerson   ContactPerson @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, contactPersonId])
+}
+
+// connection between application and a contact person
+model JobApplicationContactPerson {
+  id               String         @id @default(uuid())
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+  contactPersonId  String
+  contactPerson    ContactPerson  @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobApplicationId, contactPersonId])
+}
+
+// comments to specific application
+model Comment {
+  id      String @id @default(uuid())
+  content String
+
+  // relations
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// notes, black/white list indicators
+model CompanyNote {
+  id            String  @id @default(uuid())
+  content       String
+  isBlacklisted Boolean @default(false)
+  isFavorite    Boolean @default(false)
+
+  // relations
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, userId]) // only one comment for a company. ??? should it be more?
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime?
+  location    String?
+  isAllDay    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  color String?
+
+  userId             String
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobApplicationId   String?
+  jobApplication     JobApplication?   @relation(fields: [jobApplicationId], references: [id], onDelete: SetNull)
+  applicationStageId String?
+  applicationStage   ApplicationStage? @relation(fields: [applicationStageId], references: [id])
+
+  recurringPattern String? // example: "RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR"
+  recurringEventId String? // ID parent's recurring event
+
+  reminders EventReminder[]
+}
+
+model EventReminder {
+  id               String           @id @default(uuid())
+  timeBeforeEvent  Int // in minutes
+  notificationType NotificationType
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum NotificationType {
+  EMAIL
+  PUSH
+  BROWSER
+}
+
+enum LinkType {
+  WEBSITE // Official site
+  LINKEDIN
+  GITHUB
+  GLASSDOOR
+  INDEED
+  FACEBOOK
+  TWITTER
+  INSTAGRAM
+  JOB_BOARD
+  OTHER
+}
