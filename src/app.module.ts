@@ -5,6 +5,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'path';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { ContactsModule } from './contacts/contacts.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -25,6 +26,7 @@ import { AppService } from './app.service';
       sortSchema: true,
     }),
     PrismaModule,
+    ContactsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

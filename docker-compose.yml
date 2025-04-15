@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: job-tracker-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: job_tracker
+    volumes:
+      - job-tracker-postgres-data:/var/lib/postgresql/data
+    networks:
+        - job-tracker-network
+
+volumes:
+  job-tracker-postgres-data:
+    name: job-tracker-postgres-data
+
+networks:
+  job-tracker-network:
+    name: job-tracker-network
+    driver: bridge

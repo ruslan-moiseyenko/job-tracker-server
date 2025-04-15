@@ -1,0 +1,18 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type ContactType {
+  email: String
+  firstName: String
+  id: String!
+  lastName: String
+  phone: String
+  position: String
+  socialLinks: String
+}
+
+type Query {
+  contact(id: String!): ContactType
+  contacts: [ContactType!]!
+}
