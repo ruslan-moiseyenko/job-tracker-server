@@ -1,0 +1,6 @@
+ignoredBuiltDependencies:
+  - '@apollo/protobufjs'
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - bcrypt
