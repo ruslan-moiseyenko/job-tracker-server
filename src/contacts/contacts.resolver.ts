@@ -6,13 +6,13 @@ import { ContactType } from './types/contact.type';
 export class ContactsResolver {
   constructor(private contactsService: ContactsService) {}
 
-  @Query(() => [ContactType], { name: 'contacts' })
-  async getContacts() {
+  @Query(() => [ContactType], { name: 'getAllContacts' })
+  async getAllContacts() {
     return this.contactsService.findAll();
   }
 
-  @Query(() => ContactType, { name: 'contact', nullable: true })
-  async getContact(@Args('id') id: string) {
+  @Query(() => ContactType, { name: 'getContactById', nullable: true })
+  async getContactById(@Args('id') id: string) {
     return this.contactsService.findOne(id);
   }
 }

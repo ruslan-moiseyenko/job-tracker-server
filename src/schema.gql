@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type AuthPayload {
+  accessToken: String!
+  refreshToken: String!
+}
+
 type ContactType {
   email: String
   firstName: String
@@ -12,7 +17,32 @@ type ContactType {
   socialLinks: String
 }
 
+type GqlUser {
+  email: String!
+  firstName: String
+  id: ID!
+  lastName: String
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  login(input: LoginInput!): AuthPayload!
+  register(input: RegisterInput!): GqlUser!
+}
+
 type Query {
-  contact(id: String!): ContactType
-  contacts: [ContactType!]!
+  getAllContacts: [ContactType!]!
+  getContactById(id: String!): ContactType
+  me: GqlUser!
+}
+
+input RegisterInput {
+  email: String!
+  firstName: String
+  lastName: String
+  password: String!
 }
