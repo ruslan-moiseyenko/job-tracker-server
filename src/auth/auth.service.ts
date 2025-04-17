@@ -1,31 +1,35 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
+import {
+  AuthenticationError,
+  ConfigurationError,
+  ConflictError,
+} from '../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginInput, RegisterInput } from './auth.dto';
 
-const ACCESS_SECRET = 'access_secret';
-const REFRESH_SECRET = 'refresh_secret';
-
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async register(input: RegisterInput) {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (existing) throw new ConflictException('Email already in use');
+    if (existing) {
+      throw new ConflictError('User with this email already exists');
+    }
 
-    const hashed = await bcrypt.hash(input.password, 10);
+    const hashedPassword = await bcrypt.hash(input.password, 10);
     const user = await this.prisma.user.create({
       data: {
         email: input.email,
-        password: hashed,
+        password: hashedPassword,
         firstName: input.firstName,
         lastName: input.lastName,
       },
@@ -38,20 +42,28 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) {
+      throw new AuthenticationError('Invalid credentials');
+    }
 
     const valid = await bcrypt.compare(input.password, user.password);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) {
+      throw new AuthenticationError('Invalid credentials');
+    }
 
     const accessToken = this.generateAccessToken(user.id);
     const refreshToken = this.generateRefreshToken();
+
+    const refreshExpSeconds = parseInt(
+      this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
+    );
 
     await this.prisma.token.create({
       data: {
         token: refreshToken,
         userAgent: userAgent,
         userId: user.id,
-        expDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expDate: new Date(Date.now() + refreshExpSeconds * 1000),
       },
     });
 
@@ -62,16 +74,37 @@ export class AuthService {
   }
 
   generateAccessToken(userId: string): string {
-    return jwt.sign({ sub: userId }, ACCESS_SECRET, { expiresIn: '15m' });
+    const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
+    if (!secret) {
+      throw new ConfigurationError('JWT configuration is missing');
+    }
+
+    return jwt.sign({ sub: userId }, secret as jwt.Secret, {
+      expiresIn: `${this.configService.get('JWT_ACCESS_EXPIRATION', '900')}s`,
+    });
   }
 
   generateRefreshToken(): string {
-    return jwt.sign({}, REFRESH_SECRET, { expiresIn: '7d' });
+    const secret = this.configService.get('JWT_REFRESH_SECRET');
+    if (!secret) {
+      throw new ConfigurationError('JWT configuration is missing');
+    }
+
+    return jwt.sign({}, secret as jwt.Secret, {
+      expiresIn: `${this.configService.get('JWT_REFRESH_EXPIRATION', '604800')}s`,
+    });
   }
 
   async validateAccessToken(token: string) {
     try {
-      const payload = jwt.verify(token, ACCESS_SECRET) as { sub: string };
+      const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
+      if (!secret) {
+        throw new ConfigurationError('JWT configuration is missing');
+      }
+
+      const payload = jwt.verify(token, secret as jwt.Secret) as {
+        sub: string;
+      };
       return await this.prisma.user.findUnique({ where: { id: payload.sub } });
     } catch {
       return null;

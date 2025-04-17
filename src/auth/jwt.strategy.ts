@@ -1,16 +1,27 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import {
+  AuthenticationError,
+  ConfigurationError,
+} from '../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
-
-const ACCESS_SECRET = 'access_secret'; // TODO: move to config
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    const jwtSecret = configService.get<string>('JWT_ACCESS_SECRET');
+    if (!jwtSecret) {
+      throw new ConfigurationError('JWT configuration is missing');
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: ACCESS_SECRET,
+      secretOrKey: jwtSecret,
     });
   }
 
@@ -20,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user) {
-      throw new Error('Invalid token - user not found');
+      throw new AuthenticationError('User not found');
     }
 
     return user;

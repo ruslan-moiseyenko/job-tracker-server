@@ -1,14 +1,16 @@
+import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { User } from '@prisma/client';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { UserAgent } from 'src/common/decorators/user-agent.decorator';
+import { GqlThrottlerGuard } from 'src/common/guards/gql-throttler.guard';
 import { GqlUser } from 'src/user/user.model';
 import { AuthPayload, LoginInput, RegisterInput } from './auth.dto';
 import { AuthService } from './auth.service';
-import { UserAgent } from 'src/common/decorators/user-agent.decorator';
-import { UseGuards } from '@nestjs/common';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { User } from '@prisma/client';
-import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 
 @Resolver()
+@UseGuards(GqlThrottlerGuard)
 export class AuthResolver {
   constructor(private authService: AuthService) {}
 
