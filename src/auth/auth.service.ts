@@ -73,6 +73,17 @@ export class AuthService {
     };
   }
 
+  async logout(token: string) {
+    try {
+      await this.prisma.token.delete({
+        where: { token },
+      });
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   generateAccessToken(userId: string): string {
     const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
     if (!secret) {
@@ -109,5 +120,58 @@ export class AuthService {
     } catch {
       return null;
     }
+  }
+
+  async refreshTokens(token: string, userAgent: string) {
+    const storedToken = await this.prisma.token.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!storedToken) {
+      throw new AuthenticationError('Invalid refresh token');
+    }
+
+    if (storedToken.expDate < new Date()) {
+      await this.prisma.token.delete({ where: { token } });
+      throw new AuthenticationError('Refresh token expired');
+    }
+
+    // Verify token signature
+    try {
+      const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+
+      if (!secret) {
+        throw new ConfigurationError('JWT configuration is missing');
+      }
+
+      jwt.verify(token, secret);
+    } catch (_error) {
+      throw new AuthenticationError('Invalid refresh token');
+    }
+
+    // Generate new tokens
+    const accessToken = this.generateAccessToken(storedToken.userId);
+    const refreshToken = this.generateRefreshToken();
+    const refreshExpSeconds = parseInt(
+      this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
+    );
+
+    // Remove old token and create new one
+    await this.prisma.token.delete({ where: { token } });
+    await this.prisma.token.create({
+      data: {
+        token: refreshToken,
+        userAgent,
+        userId: storedToken.userId,
+        expDate: new Date(Date.now() + refreshExpSeconds * 1000),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: storedToken.user,
+    };
   }
 }

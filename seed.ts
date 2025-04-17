@@ -414,9 +414,7 @@ async function createContactPersons(count: number): Promise<ContactPerson[]> {
   const contactPersons: ContactPerson[] = [];
 
   for (let i = 0; i < count; i++) {
-    const gender = faker.helpers.arrayElement(['male', 'female']) as
-      | 'male'
-      | 'female';
+    const gender = faker.helpers.arrayElement(['male', 'female']);
     const firstName = faker.person.firstName(gender);
     const lastName = faker.person.lastName();
 

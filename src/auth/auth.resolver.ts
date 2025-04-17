@@ -6,7 +6,12 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { UserAgent } from 'src/common/decorators/user-agent.decorator';
 import { GqlThrottlerGuard } from 'src/common/guards/gql-throttler.guard';
 import { GqlUser } from 'src/user/user.model';
-import { AuthPayload, LoginInput, RegisterInput } from './auth.dto';
+import {
+  AuthPayload,
+  LoginInput,
+  RefreshTokenInput,
+  RegisterInput,
+} from './auth.dto';
 import { AuthService } from './auth.service';
 
 @Resolver()
@@ -25,6 +30,20 @@ export class AuthResolver {
     @UserAgent() userAgent: string,
   ) {
     return this.authService.login(input, userAgent);
+  }
+
+  @Mutation(() => AuthPayload)
+  async refreshToken(
+    @Args('input') input: RefreshTokenInput,
+    @UserAgent() userAgent: string,
+  ) {
+    return this.authService.refreshTokens(input.refreshToken, userAgent);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
+  async logout(@Args('token') token: string) {
+    return this.authService.logout(token);
   }
 
   @Query(() => GqlUser)

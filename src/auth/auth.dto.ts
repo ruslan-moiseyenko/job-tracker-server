@@ -1,5 +1,6 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { GqlUser } from 'src/user/user.model';
 
 @InputType()
 export class RegisterInput {
@@ -39,6 +40,13 @@ export class LoginInput {
   password: string;
 }
 
+@InputType()
+export class RefreshTokenInput {
+  @Field()
+  @IsString()
+  refreshToken: string;
+}
+
 @ObjectType()
 export class AuthPayload {
   @Field()
@@ -48,4 +56,7 @@ export class AuthPayload {
   @Field()
   @IsString()
   refreshToken: string;
+
+  @Field(() => GqlUser, { nullable: true })
+  user?: GqlUser;
 }
