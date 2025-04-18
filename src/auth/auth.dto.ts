@@ -22,6 +22,30 @@ export interface OAuthUser {
   lastName?: string;
   provider: string;
   providerId: string;
+  displayName?: string;
+  avatarUrl?: string;
+  userData?: any; // For internal use, not exposed via GraphQL
+}
+
+@ObjectType()
+export class OAuthConnectionType {
+  @Field()
+  id: string;
+
+  @Field()
+  provider: string;
+
+  @Field()
+  providerId: string;
+
+  @Field({ nullable: true })
+  displayName?: string;
+
+  @Field({ nullable: true })
+  avatarUrl?: string;
+
+  @Field()
+  createdAt: Date;
 }
 
 @InputType()

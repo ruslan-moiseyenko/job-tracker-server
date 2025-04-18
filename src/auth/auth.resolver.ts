@@ -9,6 +9,7 @@ import { GqlUser } from 'src/user/user.model';
 import {
   AuthPayload,
   LoginInput,
+  OAuthConnectionType,
   RefreshTokenInput,
   RegisterInput,
 } from './auth.dto';
@@ -64,5 +65,20 @@ export class AuthResolver {
     @UserAgent() userAgent: string,
   ) {
     return await this.authService.handleGoogleAuth(code, userAgent);
+  }
+
+  @Query(() => [OAuthConnectionType])
+  @UseGuards(GqlAuthGuard)
+  async getMyOAuthConnections(@CurrentUser() user: User) {
+    return this.authService.getOAuthConnections(user.id);
+  }
+
+  @Mutation(() => Boolean)
+  @UseGuards(GqlAuthGuard)
+  async removeOAuthConnection(
+    @CurrentUser() user: User,
+    @Args('connectionId') connectionId: string,
+  ) {
+    return this.authService.removeOAuthConnection(user.id, connectionId);
   }
 }

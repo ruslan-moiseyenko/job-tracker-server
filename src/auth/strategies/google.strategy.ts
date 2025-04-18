@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { Profile, Strategy } from 'passport-google-oauth20';
 import { Request } from 'express';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AuthService } from '../auth.service';
+import { Profile, Strategy } from 'passport-google-oauth20';
+import { AuthService } from 'src/auth/auth.service';
+import { OAuthError } from 'src/common/exceptions/graphql.exceptions';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -45,7 +46,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: Profile,
   ) {
     if (!profile.emails?.[0]?.value) {
-      throw new Error('Email not provided by Google');
+      throw new OAuthError('Email not provided by Google');
     }
 
     return this.authService.validateOAuthUser({
@@ -54,6 +55,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       lastName: profile.name?.familyName,
       provider: 'google',
       providerId: profile.id,
+      displayName: profile.displayName,
+      avatarUrl: profile.photos?.[0]?.value,
+      userData: {
+        // Here we can store additional data that might be useful internally
+        // but isn't exposed directly through GraphQL
+        locale: profile._json?.locale,
+        verifiedEmail: profile._json?.email_verified,
+      },
     });
   }
 }

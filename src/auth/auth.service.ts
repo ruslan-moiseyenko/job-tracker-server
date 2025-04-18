@@ -7,9 +7,11 @@ import {
   AuthenticationError,
   ConfigurationError,
   ConflictError,
+  OAuthError,
 } from '../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginInput, RegisterInput, OAuthUser } from './auth.dto';
+import { GraphQLError } from 'graphql';
 
 @Injectable()
 export class AuthService {
@@ -175,36 +177,114 @@ export class AuthService {
   }
 
   async validateOAuthUser(oauthData: OAuthUser) {
-    let user = await this.prisma.user.findUnique({
-      where: { email: oauthData.email },
-    });
+    try {
+      // Check if this OAuth account is already connected to a user
+      const existingConnection =
+        await this.prisma.userOAuthConnection.findUnique({
+          where: {
+            provider_providerId: {
+              provider: oauthData.provider,
+              providerId: oauthData.providerId,
+            },
+          },
+          include: { user: true },
+        });
 
-    if (!user) {
-      const randomPassword = Math.random().toString(36).slice(-8);
-      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+      if (existingConnection) {
+        return existingConnection.user;
+      }
 
-      user = await this.prisma.user.create({
-        data: {
-          email: oauthData.email,
-          password: hashedPassword, // not used, but needed for the user scheme
-          firstName: oauthData.firstName,
-          lastName: oauthData.lastName,
-        },
+      // If no connection exists, look for a user with the same email
+      let user = await this.prisma.user.findUnique({
+        where: { email: oauthData.email },
+      });
+
+      // Transaction to ensure data consistency
+      try {
+        return await this.prisma.$transaction(async (prisma) => {
+          // If user doesn't exist, create one
+          if (!user) {
+            // Create random password for security
+            const randomPassword =
+              Math.random().toString(36).slice(-10) +
+              Math.random().toString(36).slice(-10);
+            const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+            try {
+              user = await prisma.user.create({
+                data: {
+                  email: oauthData.email,
+                  password: hashedPassword,
+                  firstName: oauthData.firstName,
+                  lastName: oauthData.lastName,
+                },
+              });
+            } catch (error) {
+              // Handle specific Prisma errors
+              if (
+                error.code === 'P2002' &&
+                error.meta?.target?.includes('email')
+              ) {
+                throw new ConflictError('Email already in use');
+              }
+              throw error;
+            }
+          }
+
+          // Create OAuth connection for the user
+          try {
+            await prisma.userOAuthConnection.create({
+              data: {
+                provider: oauthData.provider,
+                providerId: oauthData.providerId,
+                displayName: oauthData.displayName,
+                avatarUrl: oauthData.avatarUrl,
+                userData: oauthData.userData || {},
+                userId: user.id,
+              },
+            });
+          } catch (error) {
+            // Handle duplicate connection error
+            if (
+              error.code === 'P2002' &&
+              (error.meta?.target?.includes('provider_providerId') ||
+                (error.meta?.target?.includes('provider') &&
+                  error.meta?.target?.includes('providerId')))
+            ) {
+              throw new ConflictError(
+                'This OAuth account is already connected to another user',
+              );
+            }
+            throw error;
+          }
+
+          return user;
+        });
+      } catch (error) {
+        // Handle transaction specific errors
+        if (error instanceof ConflictError) {
+          throw error; // Re-throw custom errors
+        }
+
+        console.error('OAuth validation transaction failed:', error);
+
+        throw new OAuthError('Failed to process OAuth authentication', {
+          originalError:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+      }
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error; // Re-throw GraphQL errors
+      }
+
+      console.error('Unexpected error in validateOAuthUser:', error);
+
+      throw new OAuthError('Authentication failed due to an unexpected error', {
+        originalError:
+          process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
-
-    // ?? Update OAuth provider info if needed
-    if (!user.providerId || user.provider !== oauthData.provider) {
-      return this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          provider: oauthData.provider,
-          providerId: oauthData.providerId,
-        },
-      });
-    }
-
-    return user;
   }
 
   async handleGoogleAuth(input: string | OAuthUser, userAgent: string) {
@@ -271,5 +351,53 @@ export class AuthService {
     } catch (_error) {
       throw new AuthenticationError('Failed to verify Google authentication');
     }
+  }
+
+  /**
+   * Get all OAuth connections for a user
+   */
+  async getOAuthConnections(userId: string) {
+    return await this.prisma.userOAuthConnection.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Remove an OAuth connection
+   */
+  async removeOAuthConnection(userId: string, connectionId: string) {
+    // Verify the connection belongs to the user
+    const connection = await this.prisma.userOAuthConnection.findFirst({
+      where: {
+        id: connectionId,
+        userId,
+      },
+    });
+
+    if (!connection) {
+      throw new AuthenticationError('OAuth connection not found');
+    }
+
+    // Check if user has password - if not, they need at least one OAuth connection
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userOAuthConnection: true,
+      },
+    });
+
+    if (!user?.password && (user?.userOAuthConnection?.length ?? 0) <= 1) {
+      throw new AuthenticationError(
+        'Cannot remove the last OAuth connection without setting a password',
+      );
+    }
+
+    // Delete the connection
+    await this.prisma.userOAuthConnection.delete({
+      where: { id: connectionId },
+    });
+
+    return true;
   }
 }
