@@ -1,31 +1,17 @@
 import { GraphQLError } from 'graphql';
 
 export class AuthenticationError extends GraphQLError {
-  constructor(message: string = 'Authentication failed') {
+  constructor(message: string) {
     super(message, {
-      extensions: {
-        code: 'UNAUTHENTICATED',
-      },
+      extensions: { code: 'UNAUTHENTICATED' },
     });
   }
 }
 
 export class ConfigurationError extends GraphQLError {
-  constructor(message: string = 'Server configuration error') {
-    super(message, {
-      extensions: {
-        code: 'CONFIGURATION_ERROR',
-      },
-    });
-  }
-}
-
-export class ValidationError extends GraphQLError {
   constructor(message: string) {
     super(message, {
-      extensions: {
-        code: 'BAD_USER_INPUT',
-      },
+      extensions: { code: 'CONFIGURATION_ERROR' },
     });
   }
 }
@@ -33,9 +19,23 @@ export class ValidationError extends GraphQLError {
 export class ConflictError extends GraphQLError {
   constructor(message: string) {
     super(message, {
-      extensions: {
-        code: 'CONFLICT',
-      },
+      extensions: { code: 'CONFLICT' },
     });
+  }
+}
+
+export class OAuthError extends GraphQLError {
+  constructor(message: string, details?: Record<string, any>) {
+    super(message, {
+      extensions: { code: 'OAUTH_ERROR', ...details },
+    });
+  }
+}
+
+export class OAuthConfigError extends ConfigurationError {
+  constructor(provider: string, missingConfig: string[]) {
+    super(
+      `Missing ${provider} OAuth configuration: ${missingConfig.join(', ')}`,
+    );
   }
 }

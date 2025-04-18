@@ -5,8 +5,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import {
   AuthenticationError,
   ConfigurationError,
-} from '../common/exceptions/graphql.exceptions';
-import { PrismaService } from '../prisma/prisma.service';
+} from '../../common/exceptions/graphql.exceptions';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {

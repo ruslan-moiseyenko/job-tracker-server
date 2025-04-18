@@ -1,6 +1,28 @@
-import { Field, InputType, ObjectType } from '@nestjs/graphql';
+import {
+  Field,
+  InputType,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
-import { GqlUser } from 'src/user/user.model';
+import { GqlUser } from '../user/user.model';
+
+export enum OAuthProvider {
+  GOOGLE = 'google',
+  GITHUB = 'github', // for future use
+}
+
+registerEnumType(OAuthProvider, {
+  name: 'OAuthProvider',
+});
+
+export interface OAuthUser {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  provider: string;
+  providerId: string;
+}
 
 @InputType()
 export class RegisterInput {
@@ -59,4 +81,10 @@ export class AuthPayload {
 
   @Field(() => GqlUser, { nullable: true })
   user?: GqlUser;
+}
+
+@ObjectType()
+export class OAuthUrlResponse {
+  @Field()
+  url: string;
 }

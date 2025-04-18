@@ -24,4 +24,14 @@ export class GqlUser {
   @IsString()
   @MinLength(2)
   lastName?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  provider?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  providerId?: string;
 }

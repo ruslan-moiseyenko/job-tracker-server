@@ -51,4 +51,18 @@ export class AuthResolver {
   me(@CurrentUser() user: User) {
     return user;
   }
+
+  @Mutation(() => AuthPayload)
+  googleAuth(@UserAgent() _userAgent: string) {
+    // This will be handled by Google OAuth strategy
+    return null;
+  }
+
+  @Mutation(() => AuthPayload)
+  async googleAuthCallback(
+    @Args('code') code: string,
+    @UserAgent() userAgent: string,
+  ) {
+    return await this.authService.handleGoogleAuth(code, userAgent);
+  }
 }

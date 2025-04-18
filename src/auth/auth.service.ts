@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import {
   AuthenticationError,
   ConfigurationError,
   ConflictError,
 } from '../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoginInput, RegisterInput } from './auth.dto';
+import { LoginInput, RegisterInput, OAuthUser } from './auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -42,7 +43,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
-    if (!user) {
+    if (!user || !user.password) {
       throw new AuthenticationError('Invalid credentials');
     }
 
@@ -140,13 +141,11 @@ export class AuthService {
     // Verify token signature
     try {
       const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
-
       if (!secret) {
         throw new ConfigurationError('JWT configuration is missing');
       }
-
       jwt.verify(token, secret);
-    } catch (_error) {
+    } catch {
       throw new AuthenticationError('Invalid refresh token');
     }
 
@@ -173,5 +172,104 @@ export class AuthService {
       refreshToken,
       user: storedToken.user,
     };
+  }
+
+  async validateOAuthUser(oauthData: OAuthUser) {
+    let user = await this.prisma.user.findUnique({
+      where: { email: oauthData.email },
+    });
+
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await this.prisma.user.create({
+        data: {
+          email: oauthData.email,
+          password: hashedPassword, // not used, but needed for the user scheme
+          firstName: oauthData.firstName,
+          lastName: oauthData.lastName,
+        },
+      });
+    }
+
+    // ?? Update OAuth provider info if needed
+    if (!user.providerId || user.provider !== oauthData.provider) {
+      return this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          provider: oauthData.provider,
+          providerId: oauthData.providerId,
+        },
+      });
+    }
+
+    return user;
+  }
+
+  async handleGoogleAuth(input: string | OAuthUser, userAgent: string) {
+    const user =
+      typeof input === 'string' ? await this.handleGoogleCode(input) : input;
+
+    // Create or update user in database
+    const dbUser = await this.validateOAuthUser(user);
+
+    // Generate tokens
+    const accessToken = this.generateAccessToken(dbUser.id);
+    const refreshToken = this.generateRefreshToken();
+
+    // Store refresh token
+    const refreshExpSeconds = parseInt(
+      this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
+    );
+
+    await this.prisma.token.create({
+      data: {
+        token: refreshToken,
+        userAgent,
+        userId: dbUser.id,
+        expDate: new Date(Date.now() + refreshExpSeconds * 1000),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: dbUser,
+    };
+  }
+
+  private async handleGoogleCode(code: string): Promise<OAuthUser> {
+    const client = new OAuth2Client(
+      this.configService.get('GOOGLE_CLIENT_ID'),
+      this.configService.get('GOOGLE_CLIENT_SECRET'),
+      this.configService.get('GOOGLE_CALLBACK_URL'),
+    );
+
+    try {
+      // Exchange code for tokens
+      const { tokens } = await client.getToken(code);
+
+      // Verify ID token
+      const ticket = await client.verifyIdToken({
+        idToken: tokens.id_token!,
+        audience: this.configService.get('GOOGLE_CLIENT_ID'),
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new AuthenticationError('Invalid token payload');
+      }
+
+      return {
+        email: payload.email!,
+        firstName: payload.given_name,
+        lastName: payload.family_name,
+        provider: 'google',
+        providerId: payload.sub,
+      };
+    } catch (_error) {
+      throw new AuthenticationError('Failed to verify Google authentication');
+    }
   }
 }

@@ -16,8 +16,9 @@ services:
 volumes:
   job-tracker-postgres-data:
     name: job-tracker-postgres-data
+    external: true
 
 networks:
   job-tracker-network:
     name: job-tracker-network
-    driver: bridge
+    external: true

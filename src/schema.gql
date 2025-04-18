@@ -5,6 +5,7 @@
 type AuthPayload {
   accessToken: String!
   refreshToken: String!
+  user: GqlUser
 }
 
 type ContactType {
@@ -22,6 +23,8 @@ type GqlUser {
   firstName: String
   id: ID!
   lastName: String
+  provider: String
+  providerId: String
 }
 
 input LoginInput {
@@ -30,7 +33,11 @@ input LoginInput {
 }
 
 type Mutation {
+  googleAuth: AuthPayload!
+  googleAuthCallback(code: String!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
+  logout(token: String!): Boolean!
+  refreshToken(input: RefreshTokenInput!): AuthPayload!
   register(input: RegisterInput!): GqlUser!
 }
 
@@ -38,6 +45,10 @@ type Query {
   getAllContacts: [ContactType!]!
   getContactById(id: String!): ContactType
   me: GqlUser!
+}
+
+input RefreshTokenInput {
+  refreshToken: String!
 }
 
 input RegisterInput {
