@@ -1,10 +1,12 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'path';
+import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
+import { JwtAuthMiddleware } from 'src/auth/middleware/jwt-auth.middleware';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -60,6 +62,14 @@ import { UserModule } from './user/user.module';
       provide: APP_FILTER,
       useClass: GraphQLErrorFilter,
     },
+    {
+      provide: APP_GUARD,
+      useClass: GqlAuthGuard,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(JwtAuthMiddleware).forRoutes('*'); // Apply to all routes
+  }
+}

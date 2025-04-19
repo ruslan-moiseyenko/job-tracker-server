@@ -1,7 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { User } from '@prisma/client';
-import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { UserAgent } from 'src/common/decorators/user-agent.decorator';
 import { GqlThrottlerGuard } from 'src/common/guards/gql-throttler.guard';
@@ -14,17 +13,20 @@ import {
   RegisterInput,
 } from './auth.dto';
 import { AuthService } from './auth.service';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Resolver()
 @UseGuards(GqlThrottlerGuard)
 export class AuthResolver {
   constructor(private authService: AuthService) {}
 
+  @Public()
   @Mutation(() => GqlUser)
   async register(@Args('input') input: RegisterInput) {
     return this.authService.register(input);
   }
 
+  @Public()
   @Mutation(() => AuthPayload)
   async login(
     @Args('input') input: LoginInput,
@@ -33,6 +35,7 @@ export class AuthResolver {
     return this.authService.login(input, userAgent);
   }
 
+  @Public()
   @Mutation(() => AuthPayload)
   async refreshToken(
     @Args('input') input: RefreshTokenInput,
@@ -42,13 +45,11 @@ export class AuthResolver {
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   async logout(@Args('token') token: string) {
     return this.authService.logout(token);
   }
 
   @Query(() => GqlUser)
-  @UseGuards(GqlAuthGuard)
   me(@CurrentUser() user: User) {
     return user;
   }
@@ -59,6 +60,7 @@ export class AuthResolver {
     return null;
   }
 
+  @Public()
   @Mutation(() => AuthPayload)
   async googleAuthCallback(
     @Args('code') code: string,
@@ -68,13 +70,11 @@ export class AuthResolver {
   }
 
   @Query(() => [OAuthConnectionType])
-  @UseGuards(GqlAuthGuard)
   async getMyOAuthConnections(@CurrentUser() user: User) {
     return this.authService.getOAuthConnections(user.id);
   }
 
   @Mutation(() => Boolean)
-  @UseGuards(GqlAuthGuard)
   async removeOAuthConnection(
     @CurrentUser() user: User,
     @Args('connectionId') connectionId: string,

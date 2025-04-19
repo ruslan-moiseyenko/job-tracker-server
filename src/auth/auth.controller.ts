@@ -1,10 +1,10 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
 import { UserAgent } from '../common/decorators/user-agent.decorator';
 import { OAuthUser } from './auth.dto';
+import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {

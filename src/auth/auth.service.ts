@@ -119,9 +119,25 @@ export class AuthService {
       const payload = jwt.verify(token, secret as jwt.Secret) as {
         sub: string;
       };
-      return await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    } catch {
-      return null;
+
+      if (!payload.sub) {
+        return null;
+      }
+
+      return await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        // Token expired, normal situation
+        return null;
+      } else if (error.name === 'JsonWebTokenError') {
+        console.log(`Invalid token: ${error.message}`);
+        return null;
+      } else {
+        console.error('JWT validation error:', error);
+        return null;
+      }
     }
   }
 
@@ -294,7 +310,12 @@ export class AuthService {
     // Create or update user in database
     const dbUser = await this.validateOAuthUser(user);
 
+    if (!dbUser || !dbUser.id) {
+      throw new Error('User ID is required for token generation');
+    }
+
     // Generate tokens
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const accessToken = this.generateAccessToken(dbUser.id);
     const refreshToken = this.generateRefreshToken();
 

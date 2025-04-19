@@ -18,6 +18,11 @@ type ContactType {
   socialLinks: String
 }
 
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
 type GqlUser {
   email: String!
   firstName: String
@@ -39,11 +44,22 @@ type Mutation {
   logout(token: String!): Boolean!
   refreshToken(input: RefreshTokenInput!): AuthPayload!
   register(input: RegisterInput!): GqlUser!
+  removeOAuthConnection(connectionId: String!): Boolean!
+}
+
+type OAuthConnectionType {
+  avatarUrl: String
+  createdAt: DateTime!
+  displayName: String
+  id: String!
+  provider: String!
+  providerId: String!
 }
 
 type Query {
   getAllContacts: [ContactType!]!
   getContactById(id: String!): ContactType
+  getMyOAuthConnections: [OAuthConnectionType!]!
   me: GqlUser!
 }
 
