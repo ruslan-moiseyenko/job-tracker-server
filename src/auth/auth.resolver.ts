@@ -1,9 +1,11 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { User } from '@prisma/client';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 import { UserAgent } from 'src/common/decorators/user-agent.decorator';
 import { GqlThrottlerGuard } from 'src/common/guards/gql-throttler.guard';
+import { GqlContext } from 'src/common/types/graphql.context';
 import { GqlUser } from 'src/user/user.model';
 import {
   AuthPayload,
@@ -13,7 +15,6 @@ import {
   RegisterInput,
 } from './auth.dto';
 import { AuthService } from './auth.service';
-import { Public } from 'src/common/decorators/public.decorator';
 
 @Resolver()
 @UseGuards(GqlThrottlerGuard)
@@ -46,11 +47,17 @@ export class AuthResolver {
 
   @Mutation(() => Boolean)
   async logout(
-    @Args('token') token: string,
+    @Args('refreshToken') refreshToken: string,
     @CurrentUser() user: User,
-    @Args('accessToken', { nullable: true }) accessToken?: string,
+    @Context() context: GqlContext,
   ) {
-    return this.authService.logout(token, user.id, accessToken);
+    const authHeader = context.req.headers.authorization;
+    let accessToken: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      accessToken = authHeader.substring(7);
+    }
+    return this.authService.logout(refreshToken, user.id, accessToken);
   }
 
   @Query(() => GqlUser)

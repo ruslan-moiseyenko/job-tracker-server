@@ -41,7 +41,7 @@ type Mutation {
   googleAuth: AuthPayload!
   googleAuthCallback(code: String!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
-  logout(token: String!): Boolean!
+  logout(refreshToken: String!): Boolean!
   refreshToken(input: RefreshTokenInput!): AuthPayload!
   register(input: RegisterInput!): GqlUser!
   removeOAuthConnection(connectionId: String!): Boolean!

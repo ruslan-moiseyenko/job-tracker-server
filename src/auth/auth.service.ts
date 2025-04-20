@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
@@ -16,6 +16,8 @@ import { LoginInput, OAuthUser, RegisterInput } from './auth.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -96,26 +98,59 @@ export class AuthService {
         );
       }
 
+      // Delete the refresh token
       await this.prisma.token.delete({
         where: { token: refreshToken },
       });
 
+      // Handle access token blacklisting
       if (accessToken) {
-        // Get access token TTL from config
-        const decoded = jwt.decode(accessToken);
-        if (decoded && typeof decoded === 'object' && decoded.exp) {
-          const currentTimestamp = Math.floor(Date.now() / 1000); //in seconds
-          const expiresIn = decoded.exp - currentTimestamp;
+        try {
+          const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
+          if (!secret) {
+            throw new ConfigurationError('JWT configuration is missing');
+          }
 
-          if (expiresIn > 0) {
-            await this.redisService.addToBlacklist(accessToken, expiresIn);
+          const decoded = jwt.verify(accessToken, secret) as { exp?: number };
+          if (decoded && decoded.exp) {
+            const currentTimestamp = Math.floor(Date.now() / 1000);
+            const expiresIn = decoded.exp - currentTimestamp;
+            console.log('🚀 ~ AuthService ~ logout ~ expiresIn:', expiresIn);
+
+            if (expiresIn > 0) {
+              await this.redisService.addToBlacklist(accessToken, expiresIn);
+              this.logger.debug(
+                `Access token blacklisted for ${expiresIn} seconds`,
+              );
+            } else {
+              this.logger.debug(
+                'Access token already expired, no need to blacklist',
+              );
+            }
+          }
+        } catch (error) {
+          if (error.name === 'JsonWebTokenError') {
+            this.logger.error(
+              'Invalid access token provided during logout:',
+              error.message,
+            );
+          } else if (error.name === 'TokenExpiredError') {
+            this.logger.debug('Access token already expired during logout');
+          } else {
+            throw error;
           }
         }
       }
 
       return true;
     } catch (error) {
-      console.error('Error during logout:', error);
+      this.logger.error('Error during logout:', error);
+      if (
+        error instanceof AuthenticationError ||
+        error instanceof ConfigurationError
+      ) {
+        throw error;
+      }
       return false;
     }
   }

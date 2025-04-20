@@ -1,10 +1,12 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { AuthService } from 'src/auth/auth.service';
 import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class JwtAuthMiddleware implements NestMiddleware {
+  private readonly logger = new Logger(JwtAuthMiddleware.name);
+
   constructor(
     private authService: AuthService,
     private redisService: RedisService,
@@ -17,22 +19,31 @@ export class JwtAuthMiddleware implements NestMiddleware {
       const token = authHeader.substring(7);
 
       try {
+        // Check if Redis is available first
+        await this.redisService.getClient().ping();
+
         // Check if token is blacklisted
         const isBlacklisted = await this.redisService.isBlacklisted(token);
+
         if (isBlacklisted) {
-          // if blacklisted, continue without attaching user
-          next();
-          return;
+          return next();
         }
 
         const user = await this.authService.validateAccessToken(token);
         if (user) {
-          // Attach the user to the request
           req.user = user;
         }
       } catch (error) {
-        // Just log the error but don't block the request
-        console.error('JWT validation error:', error.message);
+        if (error.message === 'Redis is not connected') {
+          this.logger.error('Redis connection unavailable:', error);
+          // Allow the request to proceed even if Redis is down
+          const user = await this.authService.validateAccessToken(token);
+          if (user) {
+            req.user = user;
+          }
+        } else {
+          this.logger.error('JWT validation error:', error.message);
+        }
       }
     }
 

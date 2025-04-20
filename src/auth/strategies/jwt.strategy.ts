@@ -1,16 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { RedisService } from 'src/redis/redis.service';
 import {
   AuthenticationError,
   ConfigurationError,
 } from '../../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -37,6 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Check if token is blacklisted
     const isBlacklisted = await this.redisService.isBlacklisted(token);
+
     if (isBlacklisted) {
       throw new AuthenticationError('Token has been revoked');
     }

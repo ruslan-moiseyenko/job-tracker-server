@@ -11,12 +11,25 @@ services:
     volumes:
       - job-tracker-postgres-data:/var/lib/postgresql/data
     networks:
-        - job-tracker-network
+      - job-tracker-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: job-tracker-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - job-tracker-redis-data:/data
+    networks:
+      - job-tracker-network
 
 volumes:
   job-tracker-postgres-data:
     name: job-tracker-postgres-data
     external: true
+  job-tracker-redis-data:
+    name: job-tracker-redis-data
 
 networks:
   job-tracker-network:
