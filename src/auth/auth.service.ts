@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
+import { GraphQLError } from 'graphql';
+import * as jwt from 'jsonwebtoken';
+import { RedisService } from 'src/redis/redis.service';
 import {
   AuthenticationError,
   ConfigurationError,
@@ -10,14 +12,14 @@ import {
   OAuthError,
 } from '../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoginInput, RegisterInput, OAuthUser } from './auth.dto';
-import { GraphQLError } from 'graphql';
+import { LoginInput, OAuthUser, RegisterInput } from './auth.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {}
 
   async register(input: RegisterInput) {
@@ -76,10 +78,10 @@ export class AuthService {
     };
   }
 
-  async logout(token: string, userId: string) {
+  async logout(refreshToken: string, userId: string, accessToken?: string) {
     try {
       const tokenRecord = await this.prisma.token.findUnique({
-        where: { token },
+        where: { token: refreshToken },
       });
 
       // Check if the token exists
@@ -95,8 +97,21 @@ export class AuthService {
       }
 
       await this.prisma.token.delete({
-        where: { token },
+        where: { token: refreshToken },
       });
+
+      if (accessToken) {
+        // Get access token TTL from config
+        const decoded = jwt.decode(accessToken);
+        if (decoded && typeof decoded === 'object' && decoded.exp) {
+          const currentTimestamp = Math.floor(Date.now() / 1000); //in seconds
+          const expiresIn = decoded.exp - currentTimestamp;
+
+          if (expiresIn > 0) {
+            await this.redisService.addToBlacklist(accessToken, expiresIn);
+          }
+        }
+      }
 
       return true;
     } catch (error) {
