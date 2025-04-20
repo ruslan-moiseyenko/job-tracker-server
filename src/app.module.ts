@@ -70,6 +70,6 @@ import { UserModule } from './user/user.module';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(JwtAuthMiddleware).forRoutes('*'); // Apply to all routes
+    consumer.apply(JwtAuthMiddleware).forRoutes('*path'); // Apply to all routes
   }
 }

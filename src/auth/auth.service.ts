@@ -76,13 +76,31 @@ export class AuthService {
     };
   }
 
-  async logout(token: string) {
+  async logout(token: string, userId: string) {
     try {
+      const tokenRecord = await this.prisma.token.findUnique({
+        where: { token },
+      });
+
+      // Check if the token exists
+      if (!tokenRecord) {
+        throw new AuthenticationError('Invalid refresh token');
+      }
+
+      // Check if the token belongs to the user
+      if (tokenRecord.userId !== userId) {
+        throw new AuthenticationError(
+          'Token does not belong to the current user',
+        );
+      }
+
       await this.prisma.token.delete({
         where: { token },
       });
+
       return true;
-    } catch (_error) {
+    } catch (error) {
+      console.error('Error during logout:', error);
       return false;
     }
   }
@@ -315,7 +333,7 @@ export class AuthService {
     }
 
     // Generate tokens
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
     const accessToken = this.generateAccessToken(dbUser.id);
     const refreshToken = this.generateRefreshToken();
 

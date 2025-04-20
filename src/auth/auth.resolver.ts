@@ -45,8 +45,8 @@ export class AuthResolver {
   }
 
   @Mutation(() => Boolean)
-  async logout(@Args('token') token: string) {
-    return this.authService.logout(token);
+  async logout(@Args('token') token: string, @CurrentUser() user: User) {
+    return this.authService.logout(token, user.id);
   }
 
   @Query(() => GqlUser)
