@@ -210,6 +210,7 @@ export class AuthService {
   }
 
   async refreshTokens(token: string, userAgent: string) {
+    // First find the token
     const storedToken = await this.prisma.token.findUnique({
       where: { token },
       include: { user: true },
@@ -219,6 +220,12 @@ export class AuthService {
       throw new AuthenticationError('Invalid refresh token');
     }
 
+    // Then check configuration
+    const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+    if (!secret) {
+      throw new ConfigurationError('JWT configuration is missing');
+    }
+
     if (storedToken.expDate < new Date()) {
       await this.prisma.token.delete({ where: { token } });
       throw new AuthenticationError('Refresh token expired');
@@ -226,10 +233,6 @@ export class AuthService {
 
     // Verify token signature
     try {
-      const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
-      if (!secret) {
-        throw new ConfigurationError('JWT configuration is missing');
-      }
       jwt.verify(token, secret);
     } catch {
       throw new AuthenticationError('Invalid refresh token');
