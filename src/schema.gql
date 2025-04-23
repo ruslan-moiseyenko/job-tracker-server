@@ -18,6 +18,22 @@ type ContactType {
   socialLinks: String
 }
 
+input CreateJobSearchInput {
+  description: String
+  endDate: DateTime
+  isActive: Boolean!
+  startDate: DateTime
+  title: String!
+}
+
+input DateRangeInput {
+  """End date of the range (inclusive)"""
+  endDate: DateTime
+
+  """Start date of the range (inclusive)"""
+  startDate: DateTime
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -32,12 +48,34 @@ type GqlUser {
   providerId: String
 }
 
+input JobSearchFilterInput {
+  dateRange: DateRangeInput
+  hasApplications: Boolean
+  isActive: Boolean
+  title: String
+}
+
+type JobSearchType {
+  createdAt: DateTime!
+  description: String
+  endDate: DateTime
+  id: ID!
+  isActive: Boolean!
+  startDate: DateTime!
+  title: String!
+  updatedAt: DateTime!
+}
+
 input LoginInput {
   email: String!
   password: String!
 }
 
 type Mutation {
+  activateJobSearch(id: String!): JobSearchType!
+  archiveJobSearch(id: String!): JobSearchType!
+  createJobSearch(input: CreateJobSearchInput!): JobSearchType!
+  deleteJobSearch(id: String!): Boolean!
   googleAuth: AuthPayload!
   googleAuthCallback(code: String!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
@@ -45,6 +83,7 @@ type Mutation {
   refreshToken(input: RefreshTokenInput!): AuthPayload!
   register(input: RegisterInput!): GqlUser!
   removeOAuthConnection(connectionId: String!): Boolean!
+  updateJobSearch(id: String!, input: UpdateJobSearchInput!): JobSearchType!
 }
 
 type OAuthConnectionType {
@@ -56,9 +95,19 @@ type OAuthConnectionType {
   providerId: String!
 }
 
+input PaginationInput {
+  """Number of items to return (limit)"""
+  limit: Int = 10
+
+  """Number of items to skip (offset)"""
+  offset: Int = 0
+}
+
 type Query {
   getAllContacts: [ContactType!]!
   getContactById(id: String!): ContactType
+  getJobSearchById(id: String!): JobSearchType
+  getMyJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
   getMyOAuthConnections: [OAuthConnectionType!]!
   me: GqlUser!
 }
@@ -72,4 +121,12 @@ input RegisterInput {
   firstName: String
   lastName: String
   password: String!
+}
+
+input UpdateJobSearchInput {
+  description: String
+  endDate: DateTime
+  isActive: Boolean
+  startDate: DateTime
+  title: String
 }

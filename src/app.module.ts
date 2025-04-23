@@ -17,6 +17,7 @@ import { GraphQLErrorFilter } from './common/filters/graphql-exception.filter';
 import { ContactsModule } from './contacts/contacts.module';
 import { UserModule } from './user/user.module';
 import { RedisModule } from './redis/redis.module';
+import { JobSearchModule } from './job-search/job-search.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { RedisModule } from './redis/redis.module';
     UserModule,
     AuthModule,
     RedisModule,
+    JobSearchModule,
   ],
   controllers: [AppController],
   providers: [
