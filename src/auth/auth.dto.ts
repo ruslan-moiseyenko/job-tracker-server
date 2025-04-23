@@ -4,7 +4,13 @@ import {
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsDate,
+} from 'class-validator';
 import { GqlUser } from '../user/user.model';
 
 export enum OAuthProvider {
@@ -30,21 +36,29 @@ export interface OAuthUser {
 @ObjectType()
 export class OAuthConnectionType {
   @Field()
+  @IsString()
   id: string;
 
   @Field()
+  @IsString()
   provider: string;
 
   @Field()
+  @IsString()
   providerId: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   displayName?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   avatarUrl?: string;
 
   @Field()
+  @IsDate()
   createdAt: Date;
 }
 
@@ -110,5 +124,6 @@ export class AuthPayload {
 @ObjectType()
 export class OAuthUrlResponse {
   @Field()
+  @IsString()
   url: string;
 }
