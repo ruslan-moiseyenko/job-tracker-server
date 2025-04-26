@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JobSearch } from '@prisma/client';
+import { NotFoundError } from 'src/common/exceptions/graphql.exceptions';
 import {
   CreateJobSearchInput,
   JobSearchFilterInput,
@@ -23,11 +24,15 @@ export class JobSearchService {
     filter?: JobSearchFilterInput,
     pagination?: PaginationInput,
   ): Promise<JobSearch[]> {
+    console.log('Filter received:', JSON.stringify(filter));
     const whereClause: any = { userId };
 
     if (filter) {
       if (filter.title) {
-        whereClause.title = { contains: filter.title, mode: 'insensitive' };
+        whereClause.OR = [
+          { title: { contains: filter.title, mode: 'insensitive' } },
+          { description: { contains: filter.title, mode: 'insensitive' } },
+        ];
       }
 
       if (filter.isActive !== undefined) {
@@ -52,6 +57,8 @@ export class JobSearchService {
           : { none: {} };
       }
     }
+
+    console.log('Where clause:', JSON.stringify(whereClause));
 
     const take = pagination?.limit || 10;
     const skip = pagination?.offset || 0;
@@ -84,6 +91,35 @@ export class JobSearchService {
     return await this.prisma.jobSearch.update({
       where: { id, userId },
       data: input,
+    });
+  }
+
+  async archiveJobSearch(id: string, userId: string): Promise<JobSearch> {
+    return await this.prisma.jobSearch.update({
+      where: { id, userId },
+      data: { isActive: false },
+    });
+  }
+  async activateJobSearch(id: string, userId: string): Promise<JobSearch> {
+    return await this.prisma.jobSearch.update({
+      where: { id, userId },
+      data: { isActive: true },
+    });
+  }
+  async deleteJobSearch(id: string, userId: string): Promise<JobSearch> {
+    // First check if the job search exists
+    const jobSearch = await this.prisma.jobSearch.findUnique({
+      where: { id, userId },
+    });
+
+    // If no job search found, throw a NotFoundException
+    if (!jobSearch) {
+      throw new NotFoundError(`Job search with id ${id} not found`);
+    }
+
+    // If it exists, proceed with deletion
+    return await this.prisma.jobSearch.delete({
+      where: { id, userId },
     });
   }
 }

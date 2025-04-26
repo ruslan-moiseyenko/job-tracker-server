@@ -75,7 +75,7 @@ type Mutation {
   activateJobSearch(id: String!): JobSearchType!
   archiveJobSearch(id: String!): JobSearchType!
   createJobSearch(input: CreateJobSearchInput!): JobSearchType!
-  deleteJobSearch(id: String!): Boolean!
+  deleteJobSearch(id: String!): JobSearchType!
   googleAuth: AuthPayload!
   googleAuthCallback(code: String!): AuthPayload!
   login(input: LoginInput!): AuthPayload!

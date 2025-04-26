@@ -24,6 +24,14 @@ export class ConflictError extends GraphQLError {
   }
 }
 
+export class NotFoundError extends GraphQLError {
+  constructor(message: string) {
+    super(message, {
+      extensions: { code: 'NOT_FOUND' },
+    });
+  }
+}
+
 export class OAuthError extends GraphQLError {
   constructor(message: string, details?: Record<string, any>) {
     super(message, {

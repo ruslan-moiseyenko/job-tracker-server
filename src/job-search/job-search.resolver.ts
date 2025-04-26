@@ -34,8 +34,10 @@ export class JobSearchResolver {
     return this.jobSearchService.updateJobSearch(id, user.id, input);
   }
 
-  @Mutation(() => Boolean)
-  async deleteJobSearch(@Args('id') id: string, @CurrentUser() user: User) {}
+  @Mutation(() => JobSearchType)
+  async deleteJobSearch(@Args('id') id: string, @CurrentUser() user: User) {
+    return this.jobSearchService.deleteJobSearch(id, user.id);
+  }
 
   @Query(() => JobSearchType, { nullable: true })
   async getJobSearchById(@Args('id') id: string, @CurrentUser() user: User) {
@@ -56,10 +58,14 @@ export class JobSearchResolver {
   }
 
   @Mutation(() => JobSearchType)
-  async archiveJobSearch(@Args('id') id: string, @CurrentUser() user: User) {}
+  async archiveJobSearch(@Args('id') id: string, @CurrentUser() user: User) {
+    return this.jobSearchService.archiveJobSearch(id, user.id);
+  }
 
   @Mutation(() => JobSearchType)
-  async activateJobSearch(@Args('id') id: string, @CurrentUser() user: User) {}
+  async activateJobSearch(@Args('id') id: string, @CurrentUser() user: User) {
+    return this.jobSearchService.activateJobSearch(id, user.id);
+  }
 
   // Получение статистики для конкретного поиска
   // @Query(() => JobSearchStatisticsType)
