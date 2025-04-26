@@ -91,15 +91,23 @@ export class DateRangeInput {
 @InputType()
 export class JobSearchFilterInput {
   @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
   title?: string;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsBoolean()
   isActive?: boolean;
 
   @Field(() => DateRangeInput, { nullable: true })
+  @IsOptional()
+  @Type(() => DateRangeInput)
   dateRange?: DateRangeInput;
 
   @Field({ nullable: true })
+  @IsOptional()
+  @IsBoolean()
   hasApplications?: boolean;
 }
 

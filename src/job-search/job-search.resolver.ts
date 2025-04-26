@@ -22,7 +22,6 @@ export class JobSearchResolver {
     @Args('input') input: CreateJobSearchInput,
     @CurrentUser() user: User,
   ) {
-    console.log('🚀 ~ JobSearchResolver ~ input:', input);
     return this.jobSearchService.createJobSearch(user.id, input);
   }
 
@@ -31,7 +30,9 @@ export class JobSearchResolver {
     @Args('id') id: string,
     @Args('input') input: UpdateJobSearchInput,
     @CurrentUser() user: User,
-  ) {}
+  ) {
+    return this.jobSearchService.updateJobSearch(id, user.id, input);
+  }
 
   @Mutation(() => Boolean)
   async deleteJobSearch(@Args('id') id: string, @CurrentUser() user: User) {}
@@ -46,7 +47,13 @@ export class JobSearchResolver {
     @CurrentUser() user: User,
     @Args('filter', { nullable: true }) filter: JobSearchFilterInput,
     @Args('pagination', { nullable: true }) pagination: PaginationInput,
-  ) {}
+  ) {
+    return this.jobSearchService.findFilteredForUser(
+      user.id,
+      filter,
+      pagination,
+    );
+  }
 
   @Mutation(() => JobSearchType)
   async archiveJobSearch(@Args('id') id: string, @CurrentUser() user: User) {}

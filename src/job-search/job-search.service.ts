@@ -4,6 +4,7 @@ import {
   CreateJobSearchInput,
   JobSearchFilterInput,
   PaginationInput,
+  UpdateJobSearchInput,
 } from 'src/job-search/types/job-search.input';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -17,7 +18,7 @@ export class JobSearchService {
     });
   }
 
-  async findAllForUser(
+  async findFilteredForUser(
     userId: string,
     filter?: JobSearchFilterInput,
     pagination?: PaginationInput,
@@ -72,6 +73,17 @@ export class JobSearchService {
         ...input,
         userId,
       },
+    });
+  }
+
+  async updateJobSearch(
+    id: string,
+    userId: string,
+    input: UpdateJobSearchInput,
+  ): Promise<JobSearch> {
+    return await this.prisma.jobSearch.update({
+      where: { id, userId },
+      data: input,
     });
   }
 }
