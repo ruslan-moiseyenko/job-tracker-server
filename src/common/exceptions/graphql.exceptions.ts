@@ -47,3 +47,11 @@ export class OAuthConfigError extends ConfigurationError {
     );
   }
 }
+
+export class InternalServerError extends GraphQLError {
+  constructor(message: string) {
+    super(message, {
+      extensions: { code: 'INTERNAL_SERVER_ERROR' },
+    });
+  }
+}

@@ -1,6 +1,9 @@
 import { Args, Mutation, Resolver, Query } from '@nestjs/graphql';
 import { User } from '@prisma/client';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { InternalServerError } from 'src/common/exceptions/graphql.exceptions';
+import { UserInput } from 'src/user/types/user.input';
+import { ChangeProfileType } from 'src/user/types/user.type';
 import { UserService } from 'src/user/user.service';
 
 @Resolver()
@@ -18,6 +21,18 @@ export class UserResolver {
     } catch (error) {
       console.error('Error updating last active search:', error);
       return false;
+    }
+  }
+  @Mutation(() => ChangeProfileType)
+  async updateUserProfile(
+    @Args('data') data: UserInput,
+    @CurrentUser() user: User,
+  ): Promise<ChangeProfileType> {
+    try {
+      return await this.userService.updateUserData(user.id, data);
+    } catch (error) {
+      console.error('Error updating user data:', error);
+      throw new InternalServerError('Failed to update user data');
     }
   }
 

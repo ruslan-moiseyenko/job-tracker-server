@@ -8,6 +8,11 @@ type AuthPayload {
   user: GqlUser
 }
 
+type ChangeProfileType {
+  firstName: String
+  lastName: String
+}
+
 type ContactType {
   email: String
   firstName: String
@@ -85,6 +90,7 @@ type Mutation {
   removeOAuthConnection(connectionId: String!): Boolean!
   setLastActiveSearch(searchId: String!): Boolean!
   updateJobSearch(id: String!, input: UpdateJobSearchInput!): JobSearchType!
+  updateUserProfile(data: UserInput!): ChangeProfileType!
 }
 
 type OAuthConnectionType {
@@ -131,4 +137,9 @@ input UpdateJobSearchInput {
   isActive: Boolean
   startDate: DateTime
   title: String
+}
+
+input UserInput {
+  firstName: String
+  lastName: String
 }
