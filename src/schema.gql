@@ -8,6 +8,10 @@ type AuthPayload {
   user: GqlUser
 }
 
+input ChangePasswordInput {
+  password: String!
+}
+
 type ChangeProfileType {
   firstName: String
   lastName: String
@@ -79,6 +83,7 @@ input LoginInput {
 type Mutation {
   activateJobSearch(id: String!): JobSearchType!
   archiveJobSearch(id: String!): JobSearchType!
+  changePassword(input: ChangePasswordInput!): Boolean!
   createJobSearch(input: CreateJobSearchInput!): JobSearchType!
   deleteJobSearch(id: String!): JobSearchType!
   googleAuth: AuthPayload!

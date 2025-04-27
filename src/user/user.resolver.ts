@@ -2,7 +2,7 @@ import { Args, Mutation, Resolver, Query } from '@nestjs/graphql';
 import { User } from '@prisma/client';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { InternalServerError } from 'src/common/exceptions/graphql.exceptions';
-import { UserInput } from 'src/user/types/user.input';
+import { ChangePasswordInput, UserInput } from 'src/user/types/user.input';
 import { ChangeProfileType } from 'src/user/types/user.type';
 import { UserService } from 'src/user/user.service';
 
@@ -33,6 +33,19 @@ export class UserResolver {
     } catch (error) {
       console.error('Error updating user data:', error);
       throw new InternalServerError('Failed to update user data');
+    }
+  }
+
+  @Mutation(() => Boolean)
+  async changePassword(
+    @Args('input') input: ChangePasswordInput,
+    @CurrentUser() user: User,
+  ): Promise<boolean> {
+    try {
+      return await this.userService.changePassword(user.id, input.password);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw new InternalServerError('Failed to change password');
     }
   }
 

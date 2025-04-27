@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ChangeProfileType } from 'src/user/types/user.type';
 
@@ -40,5 +41,19 @@ export class UserService {
       firstName: response.firstName ?? undefined,
       lastName: response.lastName ?? undefined,
     };
+  }
+
+  async changePassword(userId: string, password: string): Promise<boolean> {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      });
+      return true;
+    } catch (error) {
+      console.error('Error changing password:', error);
+      return false;
+    }
   }
 }
