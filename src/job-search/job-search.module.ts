@@ -3,6 +3,6 @@ import { JobSearchService } from './job-search.service';
 import { JobSearchResolver } from './job-search.resolver';
 
 @Module({
-  providers: [JobSearchService, JobSearchResolver]
+  providers: [JobSearchService, JobSearchResolver],
 })
 export class JobSearchModule {}

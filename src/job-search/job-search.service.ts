@@ -24,7 +24,6 @@ export class JobSearchService {
     filter?: JobSearchFilterInput,
     pagination?: PaginationInput,
   ): Promise<JobSearch[]> {
-    console.log('Filter received:', JSON.stringify(filter));
     const whereClause: any = { userId };
 
     if (filter) {
@@ -57,8 +56,6 @@ export class JobSearchService {
           : { none: {} };
       }
     }
-
-    console.log('Where clause:', JSON.stringify(whereClause));
 
     const take = pagination?.limit || 10;
     const skip = pagination?.offset || 0;

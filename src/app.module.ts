@@ -8,8 +8,6 @@ import { join } from 'path';
 import { GqlAuthGuard } from 'src/auth/gql-auth.guard';
 import { JwtAuthMiddleware } from 'src/auth/middleware/jwt-auth.middleware';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { AuthResolver } from './auth/auth.resolver';
 import { AuthService } from './auth/auth.service';
@@ -57,9 +55,7 @@ import { JobSearchModule } from './job-search/job-search.module';
     RedisModule,
     JobSearchModule,
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     AuthResolver,
     AuthService,
     {

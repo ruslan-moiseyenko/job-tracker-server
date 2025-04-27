@@ -83,6 +83,7 @@ type Mutation {
   refreshToken(input: RefreshTokenInput!): AuthPayload!
   register(input: RegisterInput!): GqlUser!
   removeOAuthConnection(connectionId: String!): Boolean!
+  setLastActiveSearch(searchId: String!): Boolean!
   updateJobSearch(id: String!, input: UpdateJobSearchInput!): JobSearchType!
 }
 
@@ -107,6 +108,7 @@ type Query {
   getAllContacts: [ContactType!]!
   getContactById(id: String!): ContactType
   getJobSearchById(id: String!): JobSearchType
+  getLastActiveSearch: String
   getMyJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
   getMyOAuthConnections: [OAuthConnectionType!]!
   me: GqlUser!
