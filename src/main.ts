@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,6 +18,16 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true, // Removes non-whitelisted properties
       transform: true, // Auto-transform payloads to DTO instances
+      exceptionFactory: (errors) => {
+        const messages = errors.map((error) => {
+          return {
+            property: error.property,
+            constraints: error.constraints,
+            value: error.value,
+          };
+        });
+        return new BadRequestException(messages);
+      },
     }),
   );
 
