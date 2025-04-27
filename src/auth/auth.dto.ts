@@ -10,6 +10,7 @@ import {
   IsString,
   MinLength,
   IsDate,
+  Matches,
 } from 'class-validator';
 import { GqlUser } from '../user/user.model';
 
@@ -71,7 +72,13 @@ export class RegisterInput {
 
   @Field()
   @IsString()
-  @MinLength(4)
+  @MinLength(5, {
+    message: 'Password must contain at least one lowercase letter',
+  })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message:
+      'Password must contain at least one uppercase, one lowercase letter, and one number',
+  })
   password: string;
 
   @Field({ nullable: true })
