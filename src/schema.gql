@@ -9,7 +9,8 @@ type AuthPayload {
 }
 
 input ChangePasswordInput {
-  password: String!
+  newPassword: String!
+  oldPassword: String!
 }
 
 type ChangeProfileType {

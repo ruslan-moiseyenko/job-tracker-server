@@ -18,6 +18,10 @@ export class UserInput {
 export class ChangePasswordInput {
   @Field()
   @IsString()
+  oldPassword: string;
+
+  @Field()
+  @IsString()
   @MinLength(5, {
     message: 'Password must contain at least one lowercase letter',
   })
@@ -25,7 +29,7 @@ export class ChangePasswordInput {
     message:
       'Password must contain at least one uppercase, one lowercase letter, and one number',
   })
-  password: string;
+  newPassword: string;
 }
 
 @InputType()

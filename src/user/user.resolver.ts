@@ -1,5 +1,7 @@
+import { Logger } from '@nestjs/common';
 import { Args, Mutation, Resolver, Query } from '@nestjs/graphql';
 import { User } from '@prisma/client';
+import { GraphQLError } from 'graphql';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { InternalServerError } from 'src/common/exceptions/graphql.exceptions';
 import { ChangePasswordInput, UserInput } from 'src/user/types/user.input';
@@ -8,6 +10,8 @@ import { UserService } from 'src/user/user.service';
 
 @Resolver()
 export class UserResolver {
+  logger = new Logger(UserResolver.name);
+
   constructor(private readonly userService: UserService) {}
 
   @Mutation(() => Boolean)
@@ -42,9 +46,12 @@ export class UserResolver {
     @CurrentUser() user: User,
   ): Promise<boolean> {
     try {
-      return await this.userService.changePassword(user.id, input.password);
+      return await this.userService.changePassword(user.id, input);
     } catch (error) {
-      console.error('Error changing password:', error);
+      if (error instanceof GraphQLError) {
+        throw error;
+      }
+      this.logger.error('Error changing password:', error);
       throw new InternalServerError('Failed to change password');
     }
   }
