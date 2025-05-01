@@ -96,3 +96,45 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Email Functionality
+
+The application uses Nodemailer for sending transactional emails, including:
+
+- Password reset emails
+- Email change verification
+
+### Configuration
+
+Email settings are configured through environment variables:
+
+#### Using Gmail:
+
+EMAIL_SERVICE=gmail
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+EMAIL_FROM=your-email@gmail.com
+EMAIL_FROM_NAME=Your App Name
+
+Important: When using Gmail, you need to:
+
+1. Enable 2-Factor Authentication in your Google account
+2. Generate an App Password in your Google account security settings
+3. Use the App Password instead of your regular password
+
+#### Using Custom SMTP:
+
+EMAIL_SERVICE=custom
+EMAIL_HOST=smtp.your-provider.com
+EMAIL_PORT=587
+EMAIL_USER=your-username
+EMAIL_PASSWORD=your-password
+EMAIL_FROM=noreply@your-domain.com
+EMAIL_FROM_NAME=Your App Name
+
+### Development Mode
+
+For development, you can enable test mode which uses Ethereal.email to capture emails without actually sending them:
+EMAIL_TEST_MODE=true
+
+When test mode is enabled, the application will log preview URLs for each email, allowing you to view the email content in a browser.

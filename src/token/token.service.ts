@@ -63,6 +63,15 @@ export class TokenService {
 
   /**
    * Create a new token or code for the given user
+   * @param userId - The ID of the user
+   * @param type - The type of token (e.g., PASSWORD_RESET, EMAIL_CHANGE)
+   * @param metadata - Optional metadata to associate with the token
+   * @param useVerificationCode - Whether to use a verification code instead of a token
+   * @returns An object containing the generated token and its expiration time
+   *          in seconds
+   *          or throws an error if the token could not be created
+   *          or if the user ID is invalid
+   *          or if the token type is invalid
    */
   async createToken(
     userId: string,

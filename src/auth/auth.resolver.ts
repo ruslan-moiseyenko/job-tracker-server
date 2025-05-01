@@ -15,6 +15,10 @@ import {
   RegisterInput,
 } from './auth.dto';
 import { AuthService } from './auth.service';
+import {
+  RequestPasswordResetInput,
+  ResetPasswordInput,
+} from 'src/auth/password-reset.dto';
 
 @Resolver()
 @UseGuards(GqlThrottlerGuard)
@@ -91,5 +95,21 @@ export class AuthResolver {
     @Args('connectionId') connectionId: string,
   ) {
     return this.authService.removeOAuthConnection(user.id, connectionId);
+  }
+
+  @Public()
+  @Mutation(() => Boolean, {
+    description: "Request a password reset. Sends reset link to user's email.",
+  })
+  async requestPasswordReset(@Args('input') input: RequestPasswordResetInput) {
+    return this.authService.requestPasswordReset(input.email);
+  }
+
+  @Public()
+  @Mutation(() => Boolean, {
+    description: 'Reset password using token received via email.',
+  })
+  async resetPassword(@Args('input') input: ResetPasswordInput) {
+    return this.authService.resetPassword(input.token, input.newPassword);
   }
 }

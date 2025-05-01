@@ -1,5 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { ValidationConstants } from 'src/common/constants/validation.constants';
 
 @InputType()
 export class UserInput {
@@ -22,10 +23,10 @@ export class ChangePasswordInput {
 
   @Field()
   @IsString()
-  @MinLength(5, {
+  @MinLength(ValidationConstants.PASSWORD_MIN_LENGTH, {
     message: 'Password must contain at least one lowercase letter',
   })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+  @Matches(ValidationConstants.PASSWORD_PATTERN, {
     message:
       'Password must contain at least one uppercase, one lowercase letter, and one number',
   })

@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant User
+    participant Client
+    participant API
+    participant Redis
+    participant EmailService
+    
+    User->>Client: Request email change
+    Client->>API: requestEmailChange(newEmail)
+    API->>API: Validate current user and new email
+    API->>Redis: Store verification code
+    API->>EmailService: Send verification email
+    EmailService-->>User: Email with verification code
+    User->>Client: Enter verification code
+    Client->>API: verifyEmailChange(code)
+    API->>Redis: Validate code
+    API->>API: Update user email
+    API->>Redis: Delete used code
+    API-->>Client: Success response
+    Client-->>User: Show success message
