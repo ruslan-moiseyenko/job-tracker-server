@@ -13,9 +13,11 @@ import { AuthResolver } from './auth/auth.resolver';
 import { AuthService } from './auth/auth.service';
 import { GraphQLErrorFilter } from './common/filters/graphql-exception.filter';
 import { ContactsModule } from './contacts/contacts.module';
-import { UserModule } from './user/user.module';
-import { RedisModule } from './redis/redis.module';
+import { EmailModule } from './email/email.module';
 import { JobSearchModule } from './job-search/job-search.module';
+import { RedisModule } from './redis/redis.module';
+import { TokenModule } from './token/token.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -54,6 +56,8 @@ import { JobSearchModule } from './job-search/job-search.module';
     AuthModule,
     RedisModule,
     JobSearchModule,
+    EmailModule,
+    TokenModule,
   ],
   providers: [
     AuthResolver,

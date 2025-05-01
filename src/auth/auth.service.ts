@@ -9,10 +9,13 @@ import {
   AuthenticationError,
   ConfigurationError,
   ConflictError,
+  NotFoundError,
   OAuthError,
 } from '../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginInput, OAuthUser, RegisterInput } from './auth.dto';
+import { EmailService } from 'src/email/email.service';
+import { TokenService, TokenType } from 'src/token/token.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +25,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly emailService: EmailService,
+    private readonly tokenService: TokenService,
   ) {}
 
   async register(input: RegisterInput) {
@@ -491,5 +496,103 @@ export class AuthService {
     });
 
     return true;
+  }
+
+  /**
+   * Initiate the password reset process for a user
+   * @param email - The email address of the user
+   * @returns A boolean indicating whether the request was successful
+   */
+  async requestPasswordReset(email: string): Promise<boolean> {
+    try {
+      // Find the user
+      const user = await this.prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      // Return true even if user doesn't exist (for security)
+      if (!user) {
+        this.logger.log(
+          `Password reset requested for non-existent email: ${email}`,
+        );
+        return true;
+      }
+
+      // Generate a password reset token
+      const { token, expiresIn } = await this.tokenService.createToken(
+        user.id,
+        TokenType.PASSWORD_RESET,
+      );
+
+      // Create password reset link
+      const resetLink = this.emailService.generatePasswordResetLink(token);
+      const expirationMinutes = Math.ceil(expiresIn / 60); // seconds to minutes
+
+      // Send the password reset email
+      await this.emailService.sendPasswordResetEmail(user.email, {
+        username: user.firstName || user.email,
+        resetLink,
+        expiresIn: `${expirationMinutes} minutes`,
+      });
+
+      this.logger.log(`Password reset token generated for user: ${user.id}`);
+      return true;
+    } catch (error) {
+      this.logger.error('Error in requestPasswordReset:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Reset a user's password using the provided token
+   * @param token - The password reset token
+   * @param newPassword - The new password to set
+   * @returns A boolean indicating whether the password was reset successfully
+   */
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    try {
+      // Validate the token
+      const validation = await this.tokenService.validateToken(
+        token,
+        TokenType.PASSWORD_RESET,
+      );
+
+      if (!validation.valid) {
+        throw new AuthenticationError('Invalid or expired reset token');
+      }
+
+      // Get user ID from validation
+      const userId = validation.userId;
+
+      // Find the user
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update the user's password
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      });
+
+      // Delete the used token
+      await this.tokenService.deleteToken(token, TokenType.PASSWORD_RESET);
+
+      this.logger.log(`Password reset successful for user: ${userId}`);
+      return true;
+    } catch (error) {
+      this.logger.error('Error in resetPassword:', error);
+      if (error instanceof GraphQLError) {
+        throw error;
+      }
+      return false;
+    }
   }
 }

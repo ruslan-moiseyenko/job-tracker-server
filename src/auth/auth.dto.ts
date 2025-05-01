@@ -13,6 +13,7 @@ import {
   Matches,
 } from 'class-validator';
 import { GqlUser } from '../user/user.model';
+import { ValidationConstants } from 'src/common/constants/validation.constants';
 
 export enum OAuthProvider {
   GOOGLE = 'google',
@@ -72,10 +73,10 @@ export class RegisterInput {
 
   @Field()
   @IsString()
-  @MinLength(5, {
-    message: 'Password must contain at least one lowercase letter',
+  @MinLength(ValidationConstants.PASSWORD_MIN_LENGTH, {
+    message: `Password must be at least ${ValidationConstants.PASSWORD_MIN_LENGTH} characters long`,
   })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+  @Matches(ValidationConstants.PASSWORD_PATTERN, {
     message:
       'Password must contain at least one uppercase, one lowercase letter, and one number',
   })
@@ -84,13 +85,13 @@ export class RegisterInput {
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
-  @MinLength(2)
+  @MinLength(ValidationConstants.NAME_MIN_LENGTH)
   firstName?: string;
 
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
-  @MinLength(2)
+  @MinLength(ValidationConstants.NAME_MIN_LENGTH)
   lastName?: string;
 }
 
@@ -103,7 +104,7 @@ export class LoginInput {
 
   @Field()
   @IsString()
-  @MinLength(4)
+  @MinLength(ValidationConstants.PASSWORD_MIN_LENGTH)
   password: string;
 }
 

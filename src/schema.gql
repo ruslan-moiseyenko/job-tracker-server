@@ -94,9 +94,21 @@ type Mutation {
   refreshToken(input: RefreshTokenInput!): AuthPayload!
   register(input: RegisterInput!): GqlUser!
   removeOAuthConnection(connectionId: String!): Boolean!
+
+  """Request to change email address. Sends verification code to new email."""
+  requestEmailChange(input: RequestEmailChangeInput!): Boolean!
+
+  """Request a password reset. Sends reset link to user's email."""
+  requestPasswordReset(input: RequestPasswordResetInput!): Boolean!
+
+  """Reset password using token received via email."""
+  resetPassword(input: ResetPasswordInput!): Boolean!
   setLastActiveSearch(searchId: String!): Boolean!
   updateJobSearch(id: String!, input: UpdateJobSearchInput!): JobSearchType!
   updateUserProfile(data: UserInput!): ChangeProfileType!
+
+  """Verify email change with code received at new email address."""
+  verifyEmailChange(input: VerifyEmailChangeInput!): Boolean!
 }
 
 type OAuthConnectionType {
@@ -137,6 +149,24 @@ input RegisterInput {
   password: String!
 }
 
+"""Input for requesting an email change"""
+input RequestEmailChangeInput {
+  """New email address to change to"""
+  newEmail: String!
+}
+
+"""Input for requesting a password reset"""
+input RequestPasswordResetInput {
+  """Email address associated with the account"""
+  email: String!
+}
+
+"""New password to set"""
+input ResetPasswordInput {
+  newPassword: String!
+  token: String!
+}
+
 input UpdateJobSearchInput {
   description: String
   endDate: DateTime
@@ -148,4 +178,10 @@ input UpdateJobSearchInput {
 input UserInput {
   firstName: String
   lastName: String
+}
+
+"""Input for verifying an email change request"""
+input VerifyEmailChangeInput {
+  """Verification code sent to the new email address (6 digits)"""
+  verificationCode: String!
 }
