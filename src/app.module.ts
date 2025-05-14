@@ -28,7 +28,7 @@ import { UserModule } from './user/user.module';
       {
         name: 'short',
         ttl: 60000,
-        limit: 10,
+        limit: 200,
       },
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
