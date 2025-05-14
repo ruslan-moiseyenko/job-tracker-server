@@ -17,7 +17,7 @@ import {
 import { LoginInput, OAuthUser, RegisterInput } from './auth.dto';
 
 // --- Моки внешних зависимостей ---
-// (Вам нужно будет создать более полные и реалистичные моки)
+// (нужно будет создать более полные  моки)
 
 // Mock implementation for transactions
 const mockTransaction = jest.fn().mockImplementation(async (callback) => {
@@ -180,6 +180,7 @@ describe('AuthService', () => {
     lastName: 'User',
     provider: null,
     providerId: null,
+    lastActiveSearchId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -215,15 +216,33 @@ describe('AuthService', () => {
       lastName: 'User',
     };
 
-    it('should successfully register a new user', async () => {
+    const userAgent = 'test-user-agent';
+
+    it('should successfully register a new user and return tokens', async () => {
       prisma.user.findUnique.mockResolvedValue(null); // Пользователь не существует
-      prisma.user.create.mockResolvedValue({
+      const createdUser = {
         ...mockUser,
         ...registerInput,
         id: 'new-user-id',
+      };
+
+      prisma.user.create.mockResolvedValue(createdUser);
+      // Use spyOn instead of direct assignment
+      jest
+        .spyOn(service, 'generateAccessToken')
+        .mockReturnValue('test-access-token');
+      jest
+        .spyOn(service, 'generateRefreshToken')
+        .mockReturnValue('test-refresh-token');
+
+      prisma.token.create.mockResolvedValue({
+        token: 'test-refresh-token',
+        userId: createdUser.id,
+        userAgent,
+        expDate: new Date(),
       });
 
-      const result = await service.register(registerInput);
+      const result = await service.register(registerInput, userAgent);
 
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { email: registerInput.email },
@@ -237,14 +256,26 @@ describe('AuthService', () => {
           lastName: registerInput.lastName,
         },
       });
-      expect(result).toBeDefined();
-      expect(result.email).toEqual(registerInput.email);
+      expect(service.generateAccessToken).toHaveBeenCalledWith(createdUser.id);
+      expect(service.generateRefreshToken).toHaveBeenCalled();
+      expect(prisma.token.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          token: 'test-refresh-token',
+          userAgent,
+          userId: createdUser.id,
+        }),
+      });
+      expect(result).toEqual({
+        accessToken: 'test-access-token',
+        refreshToken: 'test-refresh-token',
+        user: createdUser,
+      });
     });
 
     it('should throw ConflictError if user already exists', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser); // Пользователь существует
 
-      await expect(service.register(registerInput)).rejects.toThrow(
+      await expect(service.register(registerInput, userAgent)).rejects.toThrow(
         ConflictError,
       );
       expect(prisma.user.create).not.toHaveBeenCalled();

@@ -29,6 +29,7 @@ const mockUser: User = {
   lastName: 'User',
   provider: null,
   providerId: null,
+  lastActiveSearchId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -66,20 +67,25 @@ describe('AuthResolver', () => {
   // --- Тесты для Mutations/Queries ---
 
   describe('register', () => {
-    it('should call authService.register with input and return user', async () => {
+    it('should call authService.register with input and userAgent and return auth payload', async () => {
       const input: RegisterInput = {
         email: 'new@test.com',
         password: 'pw',
         firstName: 'N',
         lastName: 'U',
       };
-      const expectedUser = { ...mockUser, email: input.email };
-      authService.register.mockResolvedValue(expectedUser);
+      const userAgent = 'test-agent';
+      const expectedPayload = {
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        user: { ...mockUser, email: input.email },
+      };
+      authService.register.mockResolvedValue(expectedPayload);
 
-      const result = await resolver.register(input);
+      const result = await resolver.register(input, userAgent);
 
-      expect(authService.register).toHaveBeenCalledWith(input);
-      expect(result).toEqual(expectedUser);
+      expect(authService.register).toHaveBeenCalledWith(input, userAgent);
+      expect(result).toEqual(expectedPayload);
     });
   });
 

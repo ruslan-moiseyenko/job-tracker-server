@@ -26,9 +26,12 @@ export class AuthResolver {
   constructor(private authService: AuthService) {}
 
   @Public()
-  @Mutation(() => GqlUser)
-  async register(@Args('input') input: RegisterInput) {
-    return this.authService.register(input);
+  @Mutation(() => AuthPayload)
+  async register(
+    @Args('input') input: RegisterInput,
+    @UserAgent() userAgent: string,
+  ) {
+    return this.authService.register(input, userAgent);
   }
 
   @Public()

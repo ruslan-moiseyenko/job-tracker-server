@@ -29,7 +29,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
   ) {}
 
-  async register(input: RegisterInput) {
+  async register(input: RegisterInput, userAgent: string) {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
@@ -47,7 +47,28 @@ export class AuthService {
       },
     });
 
-    return user;
+    // Generate tokens for automatic login
+    const accessToken = this.generateAccessToken(user.id);
+    const refreshToken = this.generateRefreshToken();
+
+    const refreshExpSeconds = parseInt(
+      this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
+    );
+
+    await this.prisma.token.create({
+      data: {
+        token: refreshToken,
+        userAgent: userAgent,
+        userId: user.id,
+        expDate: new Date(Date.now() + refreshExpSeconds * 1000),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user,
+    };
   }
 
   async login(input: LoginInput, userAgent: string) {
