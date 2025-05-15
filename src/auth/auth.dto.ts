@@ -85,13 +85,11 @@ export class RegisterInput {
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
-  @MinLength(ValidationConstants.NAME_MIN_LENGTH)
   firstName?: string;
 
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
-  @MinLength(ValidationConstants.NAME_MIN_LENGTH)
   lastName?: string;
 }
 
