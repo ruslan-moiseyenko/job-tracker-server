@@ -1,6 +1,6 @@
 export const ValidationConstants = {
   // Authentication related
-  PASSWORD_MIN_LENGTH: 5,
+  PASSWORD_MIN_LENGTH: 6,
   PASSWORD_PATTERN: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
 
   // User related

@@ -1,24 +1,30 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Logger, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { UserAgent } from '../common/decorators/user-agent.decorator';
 import { OAuthUser } from './auth.dto';
 import { AuthService } from './auth.service';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
 
+  @Public()
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth() {
+  googleAuth() {
+    this.logger.log('Google Auth endpoint hit');
     // Guard redirects to Google
   }
 
+  @Public()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(
