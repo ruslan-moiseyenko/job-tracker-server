@@ -43,7 +43,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     this.logger.log('Initializing Google Strategy');
   }
 
-  async validate(
+  validate(
     req: Request,
     accessToken: string,
     refreshToken: string,
@@ -53,7 +53,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       throw new OAuthError('Email not provided by Google');
     }
 
-    return this.authService.validateOAuthUser({
+    // Return OAuth user data directly, let auth.service handle validation once
+    return {
       email: profile.emails[0].value,
       firstName: profile.name?.givenName,
       lastName: profile.name?.familyName,
@@ -67,6 +68,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         locale: profile._json?.locale,
         verifiedEmail: profile._json?.email_verified,
       },
-    });
+    };
   }
 }

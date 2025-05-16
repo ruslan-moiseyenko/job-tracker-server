@@ -290,13 +290,14 @@ export class AuthService {
   }
 
   async validateOAuthUser(oauthData: OAuthUser) {
+    this.logger.debug('Validation income data: ', oauthData);
     try {
       // Check if this OAuth account is already connected to a user
       const existingConnection =
         await this.prisma.userOAuthConnection.findUnique({
           where: {
             provider_providerId: {
-              provider: oauthData.provider,
+              provider: oauthData.provider || 'google', // Default to 'google' if provider is undefined
               providerId: oauthData.providerId,
             },
           },
@@ -400,23 +401,60 @@ export class AuthService {
     }
   }
 
-  async handleGoogleAuth(input: string | OAuthUser, userAgent: string) {
-    const user =
-      typeof input === 'string' ? await this.handleGoogleCode(input) : input;
+  /**
+   * Process Google authentication with either:
+   * - authorization code from Google
+   * - OAuthUser data object
+   * - validated user object from the database
+   */
+  async handleGoogleAuth(
+    input: string | OAuthUser | { id: string },
+    userAgent: string,
+  ) {
+    // Step 1: Determine what we're working with
+    let dbUser: { id: string };
 
-    // Create or update user in database
-    const dbUser = await this.validateOAuthUser(user);
+    if (typeof input === 'string') {
+      // Case 1: We have a Google authorization code - convert to OAuthUser data
+      const oauthData = await this.handleGoogleCode(input);
+      // Then validate/find/create the user in our database
+      dbUser = await this.validateOAuthUser(oauthData);
+    } else if ('id' in input) {
+      // Case 2: We already have a validated database user (from strategy)
+      dbUser = input;
+    } else {
+      // Case 3: We have raw OAuth user data that needs validation
+      dbUser = await this.validateOAuthUser(input);
+    }
 
+    // Step 2: Validate the user
     if (!dbUser || !dbUser.id) {
       throw new Error('User ID is required for token generation');
     }
 
-    // Generate tokens
+    // Look up OAuth connections for this user to include in the response
+    const oauthConnections = await this.prisma.userOAuthConnection.findMany({
+      where: { userId: dbUser.id },
+      orderBy: { createdAt: 'desc' },
+      take: 1, // Just get the most recent one
+    });
 
+    // If we have an OAuth connection, add provider info to the user object
+    if (oauthConnections && oauthConnections.length > 0) {
+      const connection = oauthConnections[0];
+      // Enrich user object with provider info
+      dbUser = {
+        ...dbUser,
+        provider: connection.provider,
+        providerId: connection.providerId,
+      } as any;
+    }
+
+    // Step 3: Generate and return tokens
     const accessToken = this.generateAccessToken(dbUser.id);
     const refreshToken = this.generateRefreshToken();
 
-    // Store refresh token
+    // Store the refresh token
     const refreshExpSeconds = parseInt(
       this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
     );
