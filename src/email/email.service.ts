@@ -23,6 +23,7 @@ export class EmailService {
     private readonly emailMonitorService: EmailMonitorService,
   ) {
     // Check if we're in test mode
+    // TODO: Review test mode logic
     // this.testMode =
     //   this.configService.get<string>('NODE_ENV') !== 'production' &&
     //   this.configService.get<boolean>('EMAIL_TEST_MODE', false);

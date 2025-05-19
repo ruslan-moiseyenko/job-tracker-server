@@ -1,7 +1,7 @@
-import { Controller, Get, Logger, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Logger, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { UserAgent } from '../common/decorators/user-agent.decorator';
 import { OAuthUser } from './auth.dto';
 import { AuthService } from './auth.service';
@@ -29,6 +29,7 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(
     @Req() req: Request,
+    @Res() res: Response,
     @UserAgent() userAgent: string,
   ) {
     try {
@@ -37,34 +38,26 @@ export class AuthController {
         throw new Error('Authentication failed');
       }
 
-      const tokens = await this.authService.handleGoogleAuth(user, userAgent);
+      const { user: _userData, ...tokens } =
+        await this.authService.handleGoogleAuth(user, userAgent);
       const frontendUrl = this.configService.get('FRONTEND_URL');
 
       if (!frontendUrl) {
         throw new Error('Frontend URL not configured');
       }
 
-      return `
-        <script>
-          window.opener.postMessage({ 
-            type: 'OAUTH_CALLBACK',
-            payload: ${JSON.stringify(tokens)}
-          }, '${frontendUrl}');
-          window.close();
-        </script>`;
+      // Create a redirect URL with encoded tokens
+      const redirectUrl = `${frontendUrl}/oauth-redirect?tokens=${encodeURIComponent(JSON.stringify(tokens))}`;
+      return res.redirect(redirectUrl);
     } catch (error: any) {
-      const frontendUrl = this.configService.get('FRONTEND_URL');
-      return `
-        <script>
-          window.opener.postMessage({ 
-            type: 'OAUTH_ERROR',
-            error: ${JSON.stringify({
-              message: error.message || 'Authentication failed',
-              code: error.code || 'UNKNOWN_ERROR',
-            })}
-          }, '${frontendUrl}');
-          window.close();
-        </script>`;
+      const frontendUrl = this.configService.get('FRONTEND_URL') || '';
+      const errorData = {
+        message: error.message || 'Authentication failed',
+        code: error.code || 'UNKNOWN_ERROR',
+      };
+      // Redirect with error information
+      const errorRedirectUrl = `${frontendUrl}/oauth-redirect?error=${encodeURIComponent(JSON.stringify(errorData))}`;
+      return res.redirect(errorRedirectUrl);
     }
   }
 }
