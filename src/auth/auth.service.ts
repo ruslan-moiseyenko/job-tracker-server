@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 import * as bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { GraphQLError } from 'graphql';
@@ -16,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoginInput, OAuthUser, RegisterInput } from './auth.dto';
 import { EmailService } from 'src/email/email.service';
 import { TokenService, TokenType } from 'src/token/token.service';
+import { CookieService } from './cookie.service';
 
 @Injectable()
 export class AuthService {
@@ -27,9 +29,10 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService,
+    private readonly cookieService: CookieService,
   ) {}
 
-  async register(input: RegisterInput, userAgent: string) {
+  async register(input: RegisterInput, userAgent: string, res?: Response) {
     const existing = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
@@ -64,6 +67,18 @@ export class AuthService {
       },
     });
 
+    // If response object is available, set cookies
+    if (res) {
+      this.cookieService.setAccessTokenCookie(res, accessToken);
+      this.cookieService.setRefreshTokenCookie(res, refreshToken);
+
+      // When using cookies, don't return tokens in the response
+      return {
+        user,
+      };
+    }
+
+    // When not using cookies, include tokens in the response
     return {
       accessToken,
       refreshToken,
@@ -71,7 +86,7 @@ export class AuthService {
     };
   }
 
-  async login(input: LoginInput, userAgent: string) {
+  async login(input: LoginInput, userAgent: string, res?: Response) {
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
@@ -100,13 +115,29 @@ export class AuthService {
       },
     });
 
+    // If response object is available, set cookies
+    if (res) {
+      this.cookieService.setAccessTokenCookie(res, accessToken);
+      this.cookieService.setRefreshTokenCookie(res, refreshToken);
+
+      // When using cookies, don't return tokens in the response
+      return {
+        user,
+      };
+    }
+
+    // When not using cookies, include tokens in the response
     return {
-      accessToken,
-      refreshToken,
+      user,
     };
   }
 
-  async logout(refreshToken: string, userId: string, accessToken?: string) {
+  async logout(
+    refreshToken: string,
+    userId: string,
+    accessToken?: string,
+    res?: Response,
+  ) {
     try {
       const tokenRecord = await this.prisma.token.findUnique({
         where: { token: refreshToken },
@@ -129,6 +160,11 @@ export class AuthService {
         where: { token: refreshToken },
       });
 
+      // Clear cookies if response object is available
+      if (res) {
+        this.cookieService.clearAuthCookies(res);
+      }
+
       // Handle access token blacklisting
       if (accessToken) {
         try {
@@ -141,7 +177,6 @@ export class AuthService {
           if (decoded && decoded.exp) {
             const currentTimestamp = Math.floor(Date.now() / 1000);
             const expiresIn = decoded.exp - currentTimestamp;
-            console.log('🚀 ~ AuthService ~ logout ~ expiresIn:', expiresIn);
 
             if (expiresIn > 0) {
               await this.redisService.addToBlacklist(accessToken, expiresIn);
@@ -235,8 +270,11 @@ export class AuthService {
     }
   }
 
-  async refreshTokens(token: string, userAgent: string) {
-    // First find the token
+  async refreshTokens(
+    token: string,
+    userAgent: string,
+    res?: Response,
+  ): Promise<void> {
     const storedToken = await this.prisma.token.findUnique({
       where: { token },
       include: { user: true },
@@ -246,7 +284,7 @@ export class AuthService {
       throw new AuthenticationError('Invalid refresh token');
     }
 
-    // Then check configuration
+    // check configuration
     const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
     if (!secret) {
       throw new ConfigurationError('JWT configuration is missing');
@@ -282,15 +320,17 @@ export class AuthService {
       },
     });
 
-    return {
-      accessToken,
-      refreshToken,
-      user: storedToken.user,
-    };
+    if (!res) {
+      throw new ConfigurationError(
+        'Response API object is required for token refresh',
+      );
+    }
+
+    this.cookieService.setAccessTokenCookie(res, accessToken);
+    this.cookieService.setRefreshTokenCookie(res, refreshToken);
   }
 
   async validateOAuthUser(oauthData: OAuthUser) {
-    this.logger.debug('Validation income data: ', oauthData);
     try {
       // Check if this OAuth account is already connected to a user
       const existingConnection =
@@ -408,14 +448,17 @@ export class AuthService {
    * - validated user object from the database
    */
   async handleGoogleAuth(
-    input: string | OAuthUser | { id: string },
+    input: string | OAuthUser,
     userAgent: string,
+    res?: Response,
   ) {
-    // Step 1: Determine what we're working with
-    let dbUser: { id: string };
+    // The type annotation here varies based on your actual user model
+    let dbUser: any;
 
+    // Step 1: Get the user from OAuth data
+    // We need to handle multiple input formats due to different ways this method can be called
     if (typeof input === 'string') {
-      // Case 1: We have a Google authorization code - convert to OAuthUser data
+      // Case 1: We have a Google auth code that needs exchange
       const oauthData = await this.handleGoogleCode(input);
       // Then validate/find/create the user in our database
       dbUser = await this.validateOAuthUser(oauthData);
@@ -447,11 +490,12 @@ export class AuthService {
         ...dbUser,
         provider: connection.provider,
         providerId: connection.providerId,
-      } as any;
+      };
     }
 
     // Step 3: Generate and return tokens
-    const accessToken = this.generateAccessToken(dbUser.id);
+    const userId = String(dbUser.id);
+    const accessToken = this.generateAccessToken(userId);
     const refreshToken = this.generateRefreshToken();
 
     // Store the refresh token
@@ -468,6 +512,18 @@ export class AuthService {
       },
     });
 
+    // Set cookies if response object is available
+    if (res) {
+      this.cookieService.setAccessTokenCookie(res, accessToken);
+      this.cookieService.setRefreshTokenCookie(res, refreshToken);
+
+      // When using cookies, don't return tokens in the response
+      return {
+        user: dbUser,
+      };
+    }
+
+    // When not using cookies, include tokens in the response
     return {
       accessToken,
       refreshToken,

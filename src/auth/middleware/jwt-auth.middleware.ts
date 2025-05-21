@@ -13,11 +13,22 @@ export class JwtAuthMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    const authHeader = req.headers.authorization;
+    // Get token from cookies or headers
+    let token: string | null = null;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
+    // Try to get token from cookies first
+    if (req.cookies && req.cookies['access_token']) {
+      token = req.cookies['access_token'];
+    }
+    // Fall back to Authorization header
+    else {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
+    if (token) {
       try {
         // Check if Redis is available first
         await this.redisService.getClient().ping();

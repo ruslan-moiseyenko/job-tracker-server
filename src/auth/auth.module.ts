@@ -7,6 +7,7 @@ import { AuthResolver } from './auth.resolver';
 import { AuthService } from './auth.service';
 import { EmailService } from 'src/email/email.service';
 import { TokenService } from 'src/token/token.service';
+import { CookieService } from './cookie.service';
 
 @Module({
   controllers: [AuthController],
@@ -18,6 +19,8 @@ import { TokenService } from 'src/token/token.service';
     GoogleStrategy,
     EmailService,
     TokenService,
+    CookieService,
   ],
+  exports: [CookieService],
 })
 export class AuthModule {}

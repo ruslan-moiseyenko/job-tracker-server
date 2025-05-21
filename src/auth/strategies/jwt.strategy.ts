@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { RedisService } from 'src/redis/redis.service';
 import {
@@ -8,6 +9,25 @@ import {
   ConfigurationError,
 } from '../../common/exceptions/graphql.exceptions';
 import { PrismaService } from '../../prisma/prisma.service';
+
+// Custom extractor that tries cookies first, then falls back to auth header
+const cookieExtractor = (req: Request): string | null => {
+  if (req && req.cookies) {
+    return req.cookies['access_token'];
+  }
+  return null;
+};
+
+const tokenExtractor = (request: Request): string | null => {
+  // Try to get the token from cookies first
+  const cookieToken = cookieExtractor(request);
+  if (cookieToken) {
+    return cookieToken;
+  }
+
+  // Fall back to header
+  return ExtractJwt.fromAuthHeaderAsBearerToken()(request);
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -24,15 +44,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: tokenExtractor,
       secretOrKey: jwtSecret,
       passReqToCallback: true, // Pass the request to the validate function
     });
   }
 
-  async validate(request: any, payload: { sub: string }) {
-    // Get the token from the Auth header
-    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(request);
+  async validate(request: Request, payload: { sub: string }) {
+    // Get the token from cookies or auth header
+    const token = tokenExtractor(request);
     if (!token) {
       throw new AuthenticationError('Token not found');
     }

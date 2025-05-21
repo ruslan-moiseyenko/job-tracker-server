@@ -38,16 +38,16 @@ export class AuthController {
         throw new Error('Authentication failed');
       }
 
-      const { user: _userData, ...tokens } =
-        await this.authService.handleGoogleAuth(user, userAgent);
+      await this.authService.handleGoogleAuth(user, userAgent, res);
       const frontendUrl = this.configService.get('FRONTEND_URL');
 
       if (!frontendUrl) {
         throw new Error('Frontend URL not configured');
       }
 
-      // Create a redirect URL with encoded tokens
-      const redirectUrl = `${frontendUrl}/oauth-redirect?tokens=${encodeURIComponent(JSON.stringify(tokens))}`;
+      // Now that we're using cookies, we only need to redirect with success status
+      const redirectUrl = `${frontendUrl}/oauth-redirect?success=true`;
+
       return res.redirect(redirectUrl);
     } catch (error: any) {
       const frontendUrl = this.configService.get('FRONTEND_URL') || '';

@@ -4,6 +4,7 @@ import { User } from '@prisma/client';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 import { UserAgent } from 'src/common/decorators/user-agent.decorator';
+import { AuthenticationError } from 'src/common/exceptions/graphql.exceptions';
 import { GqlThrottlerGuard } from 'src/common/guards/gql-throttler.guard';
 import { GqlContext } from 'src/common/types/graphql.context';
 import { GqlUser } from 'src/user/user.model';
@@ -13,6 +14,8 @@ import {
   OAuthConnectionType,
   RefreshTokenInput,
   RegisterInput,
+  RefreshTokenResponse,
+  OAuthSuccessResponse,
 } from './auth.dto';
 import { AuthService } from './auth.service';
 import {
@@ -30,8 +33,9 @@ export class AuthResolver {
   async register(
     @Args('input') input: RegisterInput,
     @UserAgent() userAgent: string,
+    @Context() context: GqlContext,
   ) {
-    return this.authService.register(input, userAgent);
+    return this.authService.register(input, userAgent, context.res);
   }
 
   @Public()
@@ -39,32 +43,75 @@ export class AuthResolver {
   async login(
     @Args('input') input: LoginInput,
     @UserAgent() userAgent: string,
+    @Context() context: GqlContext,
   ) {
-    return this.authService.login(input, userAgent);
+    return this.authService.login(input, userAgent, context.res);
   }
 
   @Public()
-  @Mutation(() => AuthPayload)
+  @Mutation(() => RefreshTokenResponse)
   async refreshToken(
-    @Args('input') input: RefreshTokenInput,
-    @UserAgent() userAgent: string,
+    @Args('input', { nullable: true }) input?: RefreshTokenInput,
+    @UserAgent() userAgent?: string,
+    @Context() context?: GqlContext,
   ) {
-    return this.authService.refreshTokens(input.refreshToken, userAgent);
+    // For cookie-based auth, get refresh token from cookies if not provided in input
+    const refreshToken: string =
+      (input && input.refreshToken) ||
+      (context &&
+        context.req &&
+        context.req.cookies &&
+        context.req.cookies.refresh_token);
+
+    if (!refreshToken) {
+      throw new AuthenticationError('Refresh token is required');
+    }
+
+    await this.authService.refreshTokens(
+      refreshToken,
+      userAgent || '',
+      context?.res,
+    );
+    return { success: true };
   }
 
   @Mutation(() => Boolean)
   async logout(
-    @Args('refreshToken') refreshToken: string,
-    @CurrentUser() user: User,
-    @Context() context: GqlContext,
+    @Args('refreshToken', { nullable: true }) inputRefreshToken?: string,
+    @CurrentUser() user?: User,
+    @Context() context?: GqlContext,
   ) {
-    const authHeader = context.req.headers.authorization;
-    let accessToken: string | undefined;
+    if (!user || !context) {
+      throw new AuthenticationError('User authentication required');
+    }
 
+    // Get tokens from either cookies or header
+    let accessToken: string | undefined;
+    let refreshToken = inputRefreshToken;
+
+    // Try to get tokens from cookies first
+    if (!refreshToken && context.req.cookies?.refresh_token) {
+      refreshToken = context.req.cookies.refresh_token;
+    }
+
+    // Get access token from header if not using from cookies
+    const authHeader = context.req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       accessToken = authHeader.substring(7);
+    } else if (context.req.cookies?.access_token) {
+      accessToken = context.req.cookies.access_token;
     }
-    return this.authService.logout(refreshToken, user.id, accessToken);
+
+    if (!refreshToken) {
+      throw new AuthenticationError('Refresh token is required');
+    }
+
+    return this.authService.logout(
+      refreshToken,
+      user.id,
+      accessToken,
+      context.res,
+    );
   }
 
   @Query(() => GqlUser)
@@ -79,12 +126,24 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => AuthPayload)
+  @Mutation(() => OAuthSuccessResponse)
   async googleAuthCallback(
     @Args('code') code: string,
     @UserAgent() userAgent: string,
+    @Context() context: GqlContext,
   ) {
-    return await this.authService.handleGoogleAuth(code, userAgent);
+    if (!context.res) {
+      throw new Error('Response object is required for OAuth authentication');
+    }
+    const result = await this.authService.handleGoogleAuth(
+      code,
+      userAgent,
+      context.res,
+    );
+    return {
+      user: result.user,
+      success: true,
+    };
   }
 
   @Query(() => [OAuthConnectionType])

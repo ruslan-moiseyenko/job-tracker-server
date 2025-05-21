@@ -3,8 +3,6 @@
 # ------------------------------------------------------
 
 type AuthPayload {
-  accessToken: String!
-  refreshToken: String!
   user: GqlUser
 }
 
@@ -88,10 +86,10 @@ type Mutation {
   createJobSearch(input: CreateJobSearchInput!): JobSearchType!
   deleteJobSearch(id: String!): JobSearchType!
   googleAuth: AuthPayload!
-  googleAuthCallback(code: String!): AuthPayload!
+  googleAuthCallback(code: String!): OAuthSuccessResponse!
   login(input: LoginInput!): AuthPayload!
-  logout(refreshToken: String!): Boolean!
-  refreshToken(input: RefreshTokenInput!): AuthPayload!
+  logout(refreshToken: String): Boolean!
+  refreshToken(input: RefreshTokenInput): RefreshTokenResponse!
   register(input: RegisterInput!): AuthPayload!
   removeOAuthConnection(connectionId: String!): Boolean!
 
@@ -120,6 +118,11 @@ type OAuthConnectionType {
   providerId: String!
 }
 
+type OAuthSuccessResponse {
+  success: Boolean!
+  user: GqlUser!
+}
+
 input PaginationInput {
   """Number of items to return (limit)"""
   limit: Int = 10
@@ -139,7 +142,11 @@ type Query {
 }
 
 input RefreshTokenInput {
-  refreshToken: String!
+  refreshToken: String
+}
+
+type RefreshTokenResponse {
+  success: Boolean!
 }
 
 input RegisterInput {

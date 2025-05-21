@@ -108,23 +108,22 @@ export class LoginInput {
 
 @InputType()
 export class RefreshTokenInput {
-  @Field()
+  @Field({ nullable: true })
   @IsString()
-  refreshToken: string;
+  @IsOptional()
+  refreshToken?: string;
 }
 
 @ObjectType()
 export class AuthPayload {
-  @Field()
-  @IsString()
-  accessToken: string;
-
-  @Field()
-  @IsString()
-  refreshToken: string;
-
   @Field(() => GqlUser, { nullable: true })
   user?: GqlUser;
+}
+
+@ObjectType()
+export class RefreshTokenResponse {
+  @Field()
+  success: boolean;
 }
 
 @ObjectType()
@@ -132,4 +131,13 @@ export class OAuthUrlResponse {
   @Field()
   @IsString()
   url: string;
+}
+
+@ObjectType()
+export class OAuthSuccessResponse {
+  @Field(() => GqlUser)
+  user: GqlUser;
+
+  @Field()
+  success: boolean;
 }
