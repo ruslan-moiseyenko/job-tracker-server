@@ -1,5 +1,11 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsDate,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 @ObjectType()
 export class GqlUser {
@@ -12,6 +18,14 @@ export class GqlUser {
   @IsString()
   @MinLength(4)
   email: string;
+
+  @Field(() => Date)
+  @IsDate()
+  createdAt: Date;
+
+  @Field(() => Date)
+  @IsDate()
+  updatedAt: Date;
 
   @Field({ nullable: true })
   @IsOptional()
@@ -34,4 +48,9 @@ export class GqlUser {
   @IsOptional()
   @IsString()
   providerId?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  lastActiveSearchId?: string;
 }
