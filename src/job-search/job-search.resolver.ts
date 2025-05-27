@@ -45,7 +45,7 @@ export class JobSearchResolver {
   }
 
   @Query(() => [JobSearchType])
-  async getMyJobSearches(
+  async getAllJobSearches(
     @CurrentUser() user: User,
     @Args('filter', { nullable: true }) filter: JobSearchFilterInput,
     @Args('pagination', { nullable: true }) pagination: PaginationInput,

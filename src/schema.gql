@@ -136,10 +136,10 @@ input PaginationInput {
 
 type Query {
   getAllContacts: [ContactType!]!
+  getAllJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
   getContactById(id: String!): ContactType
   getJobSearchById(id: String!): JobSearchType
   getLastActiveSearch: String
-  getMyJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
   getMyOAuthConnections: [OAuthConnectionType!]!
   me: GqlUser!
 }
