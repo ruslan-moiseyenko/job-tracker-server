@@ -309,8 +309,9 @@ export class AuthService {
       this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
     );
 
-    // Remove old token and create new one
-    await this.prisma.token.delete({ where: { token } });
+    // Remove old token and create new one (only if it still exists)
+    // Use deleteMany to avoid issues if multiple or none of the tokens exist
+    await this.prisma.token.deleteMany({ where: { token } });
     await this.prisma.token.create({
       data: {
         token: refreshToken,
