@@ -132,8 +132,8 @@ model JobApplication {
   jobDescription  String?  @map("job_description") // to keep formatted job description
   jobLinks        String[] @map("job_links") // array of links for the description
   applicationDate DateTime @default(now()) @map("application_date")
-  lastUpdated     DateTime @updatedAt @map("last_updated")
   customColor     String?  @map("custom_color") // color for the whole row in a table
+  salary          Int? // optional salary field
 
   // relations
   jobSearchId    String             @map("job_search_id")

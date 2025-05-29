@@ -1,5 +1,5 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -15,6 +15,7 @@ import { CommonModule } from './common/common.module';
 import { GraphQLErrorFilter } from './common/filters/graphql-exception.filter';
 import { ContactsModule } from './contacts/contacts.module';
 import { EmailModule } from './email/email.module';
+import { JobApplicationModule } from './job-application/job-application.module';
 import { JobSearchModule } from './job-search/job-search.module';
 import { RedisModule } from './redis/redis.module';
 import { TokenModule } from './token/token.module';
@@ -51,15 +52,16 @@ import { UserModule } from './user/user.module';
         };
       },
     }),
-    PrismaModule,
+    AuthModule,
     CommonModule,
     ContactsModule,
-    UserModule,
-    AuthModule,
-    RedisModule,
-    JobSearchModule,
     EmailModule,
+    JobSearchModule,
+    JobApplicationModule,
+    PrismaModule,
+    RedisModule,
     TokenModule,
+    UserModule,
   ],
   providers: [
     AuthResolver,
@@ -74,7 +76,7 @@ import { UserModule } from './user/user.module';
     },
   ],
 })
-export class AppModule {
+export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(JwtAuthMiddleware).forRoutes('*path'); // Apply to all routes
   }
