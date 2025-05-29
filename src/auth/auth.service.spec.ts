@@ -5,6 +5,10 @@ import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { AuthService } from './auth.service';
+import { EmailService } from '../email/email.service';
+import { TokenService } from '../token/token.service';
+import { CookieService } from './cookie.service';
+import { MutexService } from '../common/utils/mutex.service';
 // import { OAuth2Client } from 'google-auth-library';
 import { User } from '@prisma/client';
 import { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
@@ -41,6 +45,7 @@ const mockPrismaService = {
     findUnique: jest.fn(),
     create: jest.fn(),
     delete: jest.fn(),
+    deleteMany: jest.fn(),
   },
   userOAuthConnection: {
     findUnique: jest.fn(),
@@ -71,6 +76,37 @@ const mockConfigService = {
 // Мок RedisService
 const mockRedisService = {
   addToBlacklist: jest.fn(),
+};
+
+// Mock EmailService
+const mockEmailService = {
+  sendVerificationEmail: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+};
+
+// Mock TokenService
+const mockTokenService = {
+  generateToken: jest.fn(),
+  verifyToken: jest.fn(),
+  deleteToken: jest.fn(),
+};
+
+// Mock CookieService
+const mockCookieService = {
+  setTokens: jest.fn(),
+  clearTokens: jest.fn(),
+};
+
+// Mock MutexService
+const mockMutexService = {
+  withLock: jest.fn().mockImplementation(async (key, fn) => {
+    console.log('DEBUG: mockMutexService.withLock called with key =', key);
+    const result = await fn();
+    console.log('DEBUG: mockMutexService.withLock callback returned =', result);
+    return result;
+  }),
+  isLocked: jest.fn().mockReturnValue(false),
+  getActiveLockCount: jest.fn().mockReturnValue(0),
 };
 
 // Моки для библиотек
@@ -194,6 +230,10 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: EmailService, useValue: mockEmailService },
+        { provide: TokenService, useValue: mockTokenService },
+        { provide: CookieService, useValue: mockCookieService },
+        { provide: MutexService, useValue: mockMutexService },
       ],
     }).compile();
 
@@ -312,6 +352,7 @@ describe('AuthService', () => {
       expect(result).toEqual({
         accessToken: 'fakeAccessToken',
         refreshToken: 'fakeRefreshToken',
+        user: mockUser,
       });
     });
 
@@ -503,7 +544,9 @@ describe('AuthService', () => {
         userId: mockUser.id,
         userAgent,
         expDate: new Date(Date.now() + 100000),
+        user: mockUser,
       });
+      prisma.token.deleteMany.mockResolvedValue({ count: 1 });
       prisma.token.create.mockImplementation(({ data }) =>
         Promise.resolve({
           id: 'new-token-id',
@@ -514,6 +557,9 @@ describe('AuthService', () => {
 
     it('should successfully refresh tokens', async () => {
       const result = await service.refreshTokens(oldRefreshToken, userAgent);
+
+      console.log('DEBUG: result =', result);
+      console.log('DEBUG: typeof result =', typeof result);
 
       expect(result).toEqual({
         accessToken: 'fakeAccessToken',

@@ -18,6 +18,7 @@ import { LoginInput, OAuthUser, RegisterInput } from './auth.dto';
 import { EmailService } from 'src/email/email.service';
 import { TokenService, TokenType } from 'src/token/token.service';
 import { CookieService } from './cookie.service';
+import { MutexService } from '../common/utils/mutex.service';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +31,7 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService,
     private readonly cookieService: CookieService,
+    private readonly mutexService: MutexService,
   ) {}
 
   async register(input: RegisterInput, userAgent: string, res?: Response) {
@@ -128,6 +130,8 @@ export class AuthService {
 
     // When not using cookies, include tokens in the response
     return {
+      accessToken,
+      refreshToken,
       user,
     };
   }
@@ -274,61 +278,82 @@ export class AuthService {
     token: string,
     userAgent: string,
     res?: Response,
-  ): Promise<void> {
-    const storedToken = await this.prisma.token.findUnique({
-      where: { token },
-      include: { user: true },
-    });
-
-    if (!storedToken) {
-      throw new AuthenticationError('Invalid refresh token');
-    }
-
-    // check configuration
-    const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
-    if (!secret) {
-      throw new ConfigurationError('JWT configuration is missing');
-    }
-
-    if (storedToken.expDate < new Date()) {
-      await this.prisma.token.delete({ where: { token } });
-      throw new AuthenticationError('Refresh token expired');
-    }
-
-    // Verify token signature
-    try {
-      jwt.verify(token, secret);
-    } catch {
-      throw new AuthenticationError('Invalid refresh token');
-    }
-
-    // Generate new tokens
-    const accessToken = this.generateAccessToken(storedToken.userId);
-    const refreshToken = this.generateRefreshToken();
-    const refreshExpSeconds = parseInt(
-      this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
+  ): Promise<{ accessToken: string; refreshToken: string } | void> {
+    console.log(
+      'DEBUG: refreshTokens called with token =',
+      token,
+      'userAgent =',
+      userAgent,
     );
+    console.log('DEBUG: About to call mutexService.withLock');
+    // Use mutex to prevent concurrent token refresh operations
+    return this.mutexService.withLock(`refresh_token_${token}`, async () => {
+      console.log('DEBUG: Inside withLock callback');
+      const storedToken = await this.prisma.token.findUnique({
+        where: { token },
+        include: { user: true },
+      });
+      console.log('DEBUG: storedToken =', !!storedToken);
 
-    // Remove old token and create new one (only if it still exists)
-    // Use deleteMany to avoid issues if multiple or none of the tokens exist
-    await this.prisma.token.deleteMany({ where: { token } });
-    await this.prisma.token.create({
-      data: {
-        token: refreshToken,
-        userAgent,
-        userId: storedToken.userId,
-        expDate: new Date(Date.now() + refreshExpSeconds * 1000),
-      },
-    });
+      if (!storedToken) {
+        throw new AuthenticationError('Invalid refresh token');
+      }
 
-    if (!res) {
-      throw new ConfigurationError(
-        'Response API object is required for token refresh',
+      // check configuration
+      const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+      if (!secret) {
+        throw new ConfigurationError('JWT configuration is missing');
+      }
+
+      if (storedToken.expDate < new Date()) {
+        await this.prisma.token.deleteMany({ where: { token } });
+        throw new AuthenticationError('Refresh token expired');
+      }
+
+      // Verify token signature
+      try {
+        jwt.verify(token, secret);
+      } catch {
+        throw new AuthenticationError('Invalid refresh token');
+      }
+
+      // Generate new tokens
+      const accessToken = this.generateAccessToken(storedToken.userId);
+      const refreshToken = this.generateRefreshToken();
+      const refreshExpSeconds = parseInt(
+        this.configService.get<string>('JWT_REFRESH_EXPIRATION', '604800'),
       );
-    }
 
-    this.cookieService.setAccessTokenCookie(res, accessToken);
-    this.cookieService.setRefreshTokenCookie(res, refreshToken);
+      // Remove old token and create new one (only if it still exists)
+      // Use deleteMany to avoid issues if multiple or none of the tokens exist
+      await this.prisma.token.deleteMany({ where: { token } });
+      await this.prisma.token.create({
+        data: {
+          token: refreshToken,
+          userAgent,
+          userId: storedToken.userId,
+          expDate: new Date(Date.now() + refreshExpSeconds * 1000),
+        },
+      });
+
+      // If response object is available, set cookies
+      if (res) {
+        console.log('DEBUG: Setting cookies, res =', !!res);
+        this.cookieService.setAccessTokenCookie(res, accessToken);
+        this.cookieService.setRefreshTokenCookie(res, refreshToken);
+        // When using cookies, don't return tokens
+        return;
+      }
+
+      // When not using cookies, return tokens
+      console.log('DEBUG: Got No res object -> returning tokens directly');
+      const result = {
+        accessToken,
+        refreshToken,
+      };
+      console.log('DEBUG: About to return from refreshTokens:', result);
+      return result;
+    });
   }
 
   async validateOAuthUser(oauthData: OAuthUser) {

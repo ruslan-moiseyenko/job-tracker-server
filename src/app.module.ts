@@ -11,6 +11,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthResolver } from './auth/auth.resolver';
 import { AuthService } from './auth/auth.service';
+import { CommonModule } from './common/common.module';
 import { GraphQLErrorFilter } from './common/filters/graphql-exception.filter';
 import { ContactsModule } from './contacts/contacts.module';
 import { EmailModule } from './email/email.module';
@@ -51,6 +52,7 @@ import { UserModule } from './user/user.module';
       },
     }),
     PrismaModule,
+    CommonModule,
     ContactsModule,
     UserModule,
     AuthModule,
