@@ -19,22 +19,6 @@ export class CreateJobSearchInput {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  startDate: Date;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  endDate?: Date;
-
-  @Field()
-  @IsBoolean()
-  isActive: boolean;
 }
 
 @InputType()
@@ -48,23 +32,6 @@ export class UpdateJobSearchInput {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  startDate?: Date;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsDate()
-  @Type(() => Date)
-  endDate?: Date;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
 }
 
 @InputType()
@@ -94,11 +61,6 @@ export class JobSearchFilterInput {
   @IsOptional()
   @IsString()
   title?: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
 
   @Field(() => DateRangeInput, { nullable: true })
   @IsOptional()

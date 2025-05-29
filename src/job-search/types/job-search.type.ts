@@ -1,5 +1,5 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
-import { IsString, IsOptional, IsDate, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsDate } from 'class-validator';
 
 @ObjectType()
 export class JobSearchType {
@@ -14,19 +14,6 @@ export class JobSearchType {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @Field()
-  @IsDate()
-  startDate: Date;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsDate()
-  endDate?: Date;
-
-  @Field()
-  @IsBoolean()
-  isActive: boolean;
 
   @Field()
   @IsDate()

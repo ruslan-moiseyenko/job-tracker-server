@@ -34,17 +34,13 @@ export class JobSearchService {
         ];
       }
 
-      if (filter.isActive !== undefined) {
-        whereClause.isActive = filter.isActive;
-      }
-
       if (filter.dateRange) {
         if (filter.dateRange.startDate) {
-          whereClause.startDate = { gte: filter.dateRange.startDate };
+          whereClause.createdAt = { gte: filter.dateRange.startDate };
         }
         if (filter.dateRange.endDate) {
-          whereClause.startDate = {
-            ...whereClause.startDate,
+          whereClause.createdAt = {
+            ...whereClause.createdAt,
             lte: filter.dateRange.endDate,
           };
         }
@@ -64,7 +60,7 @@ export class JobSearchService {
       where: whereClause,
       take,
       skip,
-      orderBy: { startDate: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -91,18 +87,6 @@ export class JobSearchService {
     });
   }
 
-  async archiveJobSearch(id: string, userId: string): Promise<JobSearch> {
-    return await this.prisma.jobSearch.update({
-      where: { id, userId },
-      data: { isActive: false },
-    });
-  }
-  async activateJobSearch(id: string, userId: string): Promise<JobSearch> {
-    return await this.prisma.jobSearch.update({
-      where: { id, userId },
-      data: { isActive: true },
-    });
-  }
   async deleteJobSearch(id: string, userId: string): Promise<JobSearch> {
     // First check if the job search exists
     const jobSearch = await this.prisma.jobSearch.findUnique({

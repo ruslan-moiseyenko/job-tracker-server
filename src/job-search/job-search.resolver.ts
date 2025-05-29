@@ -57,16 +57,6 @@ export class JobSearchResolver {
     );
   }
 
-  @Mutation(() => JobSearchType)
-  async archiveJobSearch(@Args('id') id: string, @CurrentUser() user: User) {
-    return this.jobSearchService.archiveJobSearch(id, user.id);
-  }
-
-  @Mutation(() => JobSearchType)
-  async activateJobSearch(@Args('id') id: string, @CurrentUser() user: User) {
-    return this.jobSearchService.activateJobSearch(id, user.id);
-  }
-
   // Получение статистики для конкретного поиска
   // @Query(() => JobSearchStatisticsType)
   // async getJobSearchStatistics(

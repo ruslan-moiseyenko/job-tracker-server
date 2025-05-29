@@ -28,9 +28,6 @@ type ContactType {
 
 input CreateJobSearchInput {
   description: String
-  endDate: DateTime
-  isActive: Boolean!
-  startDate: DateTime
   title: String!
 }
 
@@ -62,17 +59,13 @@ type GqlUser {
 input JobSearchFilterInput {
   dateRange: DateRangeInput
   hasApplications: Boolean
-  isActive: Boolean
   title: String
 }
 
 type JobSearchType {
   createdAt: DateTime!
   description: String
-  endDate: DateTime
   id: ID!
-  isActive: Boolean!
-  startDate: DateTime!
   title: String!
   updatedAt: DateTime!
 }
@@ -83,8 +76,6 @@ input LoginInput {
 }
 
 type Mutation {
-  activateJobSearch(id: String!): JobSearchType!
-  archiveJobSearch(id: String!): JobSearchType!
   changePassword(input: ChangePasswordInput!): Boolean!
   createJobSearch(input: CreateJobSearchInput!): JobSearchType!
   deleteJobSearch(id: String!): JobSearchType!
@@ -179,9 +170,6 @@ input ResetPasswordInput {
 
 input UpdateJobSearchInput {
   description: String
-  endDate: DateTime
-  isActive: Boolean
-  startDate: DateTime
   title: String
 }
 

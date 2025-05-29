@@ -289,8 +289,6 @@ async function createCompanies(): Promise<Company[]> {
 
 // Создание поиска работы
 async function createJobSearch(userId: string): Promise<JobSearch> {
-  const isActive = faker.datatype.boolean(0.7); // 70% активных поисков
-
   return prisma.jobSearch.create({
     data: {
       userId,
@@ -302,9 +300,6 @@ async function createJobSearch(userId: string): Promise<JobSearch> {
         `Job Search after ${faker.company.name()}`,
       ]),
       description: faker.helpers.maybe(() => faker.lorem.paragraph()),
-      startDate: faker.date.past({ years: 1 }),
-      endDate: isActive ? null : faker.date.recent({ days: 60 }),
-      isActive,
     },
   });
 }
