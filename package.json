@@ -18,7 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node seed.ts"
+    "seed": "ts-node seed.ts",
+    "docs:generate": "ts-node generate-docs.ts",
+    "docs:api": "echo 'GraphQL API documentation available at http://localhost:3000/graphql'"
   },
   "dependencies": {
     "@apollo/server": "^4.12.0",

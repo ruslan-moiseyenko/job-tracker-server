@@ -178,21 +178,45 @@ input MoveStageInputDto {
 
 type Mutation {
   bulkReorderStages(input: BulkReorderStagesInputDto!): [ApplicationStageType!]!
+
+  """👤 User Profile: Change user password"""
   changePassword(input: ChangePasswordInput!): Boolean!
+
+  """📊 Application Stages: Create a new application stage"""
   createApplicationStage(input: CreateApplicationStageInputDto!): ApplicationStageType!
+
+  """🏢 Companies: Create a new company"""
   createCompany(createCompanyInput: CreateCompanyInput!): Company!
+
+  """🔍 Job Applications: Create a new job application"""
   createJobApplication(input: CreateJobApplicationInput!): JobApplicationType!
+
+  """🔎 Job Searches: Create a new job search"""
   createJobSearch(input: CreateJobSearchInput!): JobSearchType!
+
+  """🔎 Job Searches: Delete a job search"""
   deleteJobSearch(id: String!): JobSearchType!
   googleAuth: AuthPayload!
   googleAuthCallback(code: String!): OAuthSuccessResponse!
+
+  """🔐 Authentication: Login with email and password"""
   login(input: LoginInput!): AuthPayload!
+
+  """🔐 Authentication: Logout user and invalidate tokens"""
   logout(refreshToken: String): Boolean!
   moveStage(input: MoveStageInputDto!): ApplicationStageType!
+
+  """🔐 Authentication: Refresh access token using refresh token"""
   refreshToken(input: RefreshTokenInput): RefreshTokenResponse!
+
+  """🔐 Authentication: Register a new user account"""
   register(input: RegisterInput!): AuthPayload!
   removeApplicationStage(id: String!): ApplicationStageType!
+
+  """🏢 Companies: Delete a company"""
   removeCompany(id: Int!): Company!
+
+  """🔍 Job Applications: Delete a job application"""
   removeJobApplication(id: String!): JobApplicationType!
   removeOAuthConnection(connectionId: String!): Boolean!
 
@@ -204,12 +228,24 @@ type Mutation {
 
   """Reset password using token received via email."""
   resetPassword(input: ResetPasswordInput!): Boolean!
+
+  """👤 User Profile: Set the last active job search"""
   setLastActiveSearch(searchId: String!): Boolean!
   swapStageOrders(input: SwapStageOrdersInputDto!): [ApplicationStageType!]!
+
+  """📊 Application Stages: Update an existing application stage"""
   updateApplicationStage(id: String!, input: UpdateApplicationStageInputDto!): ApplicationStageType!
+
+  """🏢 Companies: Update an existing company"""
   updateCompany(updateCompanyInput: UpdateCompanyInput!): Company!
+
+  """🔍 Job Applications: Update an existing job application"""
   updateJobApplication(id: String!, input: UpdateJobApplicationInput!): JobApplicationType!
+
+  """🔎 Job Searches: Update an existing job search"""
   updateJobSearch(id: String!, input: UpdateJobSearchInput!): JobSearchType!
+
+  """👤 User Profile: Update user profile information"""
   updateUserProfile(data: UserInput!): ChangeProfileType!
 
   """Verify email change with code received at new email address."""
@@ -239,17 +275,38 @@ input PaginationInput {
 }
 
 type Query {
+  """📊 Application Stages: Get a specific application stage by ID"""
   applicationStage(id: String!): ApplicationStageType
+
+  """📊 Application Stages: Get all application stages for current user"""
   applicationStages: [ApplicationStageType!]!
+
+  """🏢 Companies: Get a specific company by ID"""
   company(id: Int!): Company!
+
+  """👥 Contacts: Get all contacts"""
   getAllContacts: [ContactType!]!
+
+  """
+  🔎 Job Searches: Get all job searches with optional filtering and pagination
+  """
   getAllJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
+
+  """👥 Contacts: Get a specific contact by ID"""
   getContactById(id: String!): ContactType
+
+  """🔎 Job Searches: Get a specific job search by ID"""
   getJobSearchById(id: String!): JobSearchType
   getLastActiveSearch: String
   getMyOAuthConnections: [OAuthConnectionType!]!
+
+  """🔍 Job Applications: Get a specific job application by ID"""
   jobApplication(id: String!): JobApplicationType
+
+  """🔍 Job Applications: Get all job applications for current user"""
   jobApplications: [JobApplicationType!]!
+
+  """🔍 Job Applications: Get job applications filtered by job search"""
   jobApplicationsBySearch(jobSearchId: String!): [JobApplicationType!]!
   me: GqlUser!
 }

@@ -40,6 +40,12 @@ import { ApplicationStageModule } from './application-stage/application-stage.mo
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
       context: ({ req, res }) => ({ req, res }),
+      playground: {
+        settings: {
+          'editor.theme': 'dark',
+          'request.credentials': 'include',
+        },
+      },
       formatError: (error) => {
         const { extensions, ...rest } = error;
         return {

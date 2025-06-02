@@ -13,7 +13,9 @@ import { UpdateJobApplicationInput } from './dto/update-job-application.input';
 export class JobApplicationResolver {
   constructor(private readonly jobApplicationService: JobApplicationService) {}
 
-  @Mutation(() => JobApplicationType)
+  @Mutation(() => JobApplicationType, {
+    description: '🔍 Job Applications: Create a new job application',
+  })
   async createJobApplication(
     @Args('input') input: CreateJobApplicationInput,
     @CurrentUser() user: User,
@@ -21,12 +23,20 @@ export class JobApplicationResolver {
     return this.jobApplicationService.create(user.id, input);
   }
 
-  @Query(() => [JobApplicationType], { name: 'jobApplications' })
+  @Query(() => [JobApplicationType], {
+    name: 'jobApplications',
+    description:
+      '🔍 Job Applications: Get all job applications for current user',
+  })
   async findAllJobApplications(@CurrentUser() user: User) {
     return this.jobApplicationService.findAllForUser(user.id);
   }
 
-  @Query(() => [JobApplicationType], { name: 'jobApplicationsBySearch' })
+  @Query(() => [JobApplicationType], {
+    name: 'jobApplicationsBySearch',
+    description:
+      '🔍 Job Applications: Get job applications filtered by job search',
+  })
   async findJobApplicationsBySearch(
     @Args('jobSearchId') jobSearchId: string,
     @CurrentUser() user: User,
@@ -34,7 +44,11 @@ export class JobApplicationResolver {
     return this.jobApplicationService.findAllForJobSearch(jobSearchId, user.id);
   }
 
-  @Query(() => JobApplicationType, { name: 'jobApplication', nullable: true })
+  @Query(() => JobApplicationType, {
+    name: 'jobApplication',
+    nullable: true,
+    description: '🔍 Job Applications: Get a specific job application by ID',
+  })
   async findOneJobApplication(
     @Args('id') id: string,
     @CurrentUser() user: User,
@@ -42,7 +56,9 @@ export class JobApplicationResolver {
     return this.jobApplicationService.findOne(id, user.id);
   }
 
-  @Mutation(() => JobApplicationType)
+  @Mutation(() => JobApplicationType, {
+    description: '🔍 Job Applications: Update an existing job application',
+  })
   async updateJobApplication(
     @Args('id') id: string,
     @Args('input') input: UpdateJobApplicationInput,
@@ -51,7 +67,9 @@ export class JobApplicationResolver {
     return this.jobApplicationService.update(id, user.id, input);
   }
 
-  @Mutation(() => JobApplicationType)
+  @Mutation(() => JobApplicationType, {
+    description: '🔍 Job Applications: Delete a job application',
+  })
   async removeJobApplication(
     @Args('id') id: string,
     @CurrentUser() user: User,

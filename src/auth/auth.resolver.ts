@@ -29,7 +29,9 @@ export class AuthResolver {
   constructor(private authService: AuthService) {}
 
   @Public()
-  @Mutation(() => AuthPayload)
+  @Mutation(() => AuthPayload, {
+    description: '🔐 Authentication: Register a new user account',
+  })
   async register(
     @Args('input') input: RegisterInput,
     @UserAgent() userAgent: string,
@@ -39,7 +41,9 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => AuthPayload)
+  @Mutation(() => AuthPayload, {
+    description: '🔐 Authentication: Login with email and password',
+  })
   async login(
     @Args('input') input: LoginInput,
     @UserAgent() userAgent: string,
@@ -49,7 +53,9 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => RefreshTokenResponse)
+  @Mutation(() => RefreshTokenResponse, {
+    description: '🔐 Authentication: Refresh access token using refresh token',
+  })
   async refreshToken(
     @Args('input', { nullable: true }) input?: RefreshTokenInput,
     @UserAgent() userAgent?: string,
@@ -75,7 +81,9 @@ export class AuthResolver {
     return { success: true };
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Boolean, {
+    description: '🔐 Authentication: Logout user and invalidate tokens',
+  })
   async logout(
     @Args('refreshToken', { nullable: true }) inputRefreshToken?: string,
     @CurrentUser() user?: User,

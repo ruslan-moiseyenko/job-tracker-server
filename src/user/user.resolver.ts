@@ -18,7 +18,9 @@ export class UserResolver {
 
   constructor(private readonly userService: UserService) {}
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Boolean, {
+    description: '👤 User Profile: Set the last active job search',
+  })
   async setLastActiveSearch(
     @Args('searchId') searchId: string,
     @CurrentUser() user: User,
@@ -31,7 +33,9 @@ export class UserResolver {
       return false;
     }
   }
-  @Mutation(() => ChangeProfileType)
+  @Mutation(() => ChangeProfileType, {
+    description: '👤 User Profile: Update user profile information',
+  })
   async updateUserProfile(
     @Args('data') data: UserInput,
     @CurrentUser() user: User,
@@ -44,7 +48,9 @@ export class UserResolver {
     }
   }
 
-  @Mutation(() => Boolean)
+  @Mutation(() => Boolean, {
+    description: '👤 User Profile: Change user password',
+  })
   async changePassword(
     @Args('input') input: ChangePasswordInput,
     @CurrentUser() user: User,

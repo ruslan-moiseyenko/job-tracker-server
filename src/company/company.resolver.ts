@@ -8,24 +8,34 @@ import { UpdateCompanyInput } from './dto/update-company.input';
 export class CompanyResolver {
   constructor(private readonly companyService: CompanyService) {}
 
-  @Mutation(() => Company)
+  @Mutation(() => Company, {
+    description: '🏢 Companies: Create a new company',
+  })
   createCompany(
     @Args('createCompanyInput') createCompanyInput: CreateCompanyInput,
   ) {
     return this.companyService.create(createCompanyInput);
   }
 
-  @Query(() => [Company], { name: 'company' })
+  @Query(() => [Company], {
+    name: 'company',
+    description: '🏢 Companies: Get all companies',
+  })
   findAll() {
     return this.companyService.findAll();
   }
 
-  @Query(() => Company, { name: 'company' })
+  @Query(() => Company, {
+    name: 'company',
+    description: '🏢 Companies: Get a specific company by ID',
+  })
   findOne(@Args('id', { type: () => Int }) id: number) {
     return this.companyService.findOne(id);
   }
 
-  @Mutation(() => Company)
+  @Mutation(() => Company, {
+    description: '🏢 Companies: Update an existing company',
+  })
   updateCompany(
     @Args('updateCompanyInput') updateCompanyInput: UpdateCompanyInput,
   ) {
@@ -35,7 +45,9 @@ export class CompanyResolver {
     );
   }
 
-  @Mutation(() => Company)
+  @Mutation(() => Company, {
+    description: '🏢 Companies: Delete a company',
+  })
   removeCompany(@Args('id', { type: () => Int }) id: number) {
     return this.companyService.remove(id);
   }

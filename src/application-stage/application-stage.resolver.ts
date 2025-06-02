@@ -20,7 +20,11 @@ export class ApplicationStageResolver {
     private readonly applicationStageService: ApplicationStageService,
   ) {}
 
-  @Query(() => [ApplicationStageType], { name: 'applicationStages' })
+  @Query(() => [ApplicationStageType], {
+    name: 'applicationStages',
+    description:
+      '📊 Application Stages: Get all application stages for current user',
+  })
   async findAllApplicationStages(@CurrentUser() user: User) {
     return this.applicationStageService.findAllForUser(user.id);
   }
@@ -28,6 +32,8 @@ export class ApplicationStageResolver {
   @Query(() => ApplicationStageType, {
     name: 'applicationStage',
     nullable: true,
+    description:
+      '📊 Application Stages: Get a specific application stage by ID',
   })
   async findOneApplicationStage(
     @Args('id') id: string,
@@ -36,7 +42,9 @@ export class ApplicationStageResolver {
     return this.applicationStageService.findOne(id, user.id);
   }
 
-  @Mutation(() => ApplicationStageType)
+  @Mutation(() => ApplicationStageType, {
+    description: '📊 Application Stages: Create a new application stage',
+  })
   async createApplicationStage(
     @Args('input') input: CreateApplicationStageInputDto,
     @CurrentUser() user: User,
@@ -44,7 +52,9 @@ export class ApplicationStageResolver {
     return this.applicationStageService.create(user.id, input);
   }
 
-  @Mutation(() => ApplicationStageType)
+  @Mutation(() => ApplicationStageType, {
+    description: '📊 Application Stages: Update an existing application stage',
+  })
   async updateApplicationStage(
     @Args('id') id: string,
     @Args('input') input: UpdateApplicationStageInputDto,
