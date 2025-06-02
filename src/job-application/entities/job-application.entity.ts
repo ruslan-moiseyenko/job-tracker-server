@@ -3,6 +3,39 @@ import { IsString, IsOptional, IsDate, IsArray, IsInt } from 'class-validator';
 import { CompanyType } from './company.entity';
 
 @ObjectType()
+export class ApplicationStageType {
+  @Field(() => ID)
+  @IsString()
+  id: string;
+
+  @Field()
+  @IsString()
+  name: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @Field(() => Int)
+  @IsInt()
+  order: number;
+
+  @Field()
+  @IsDate()
+  createdAt: Date;
+
+  @Field()
+  @IsDate()
+  updatedAt: Date;
+}
+
+@ObjectType()
 export class JobApplicationType {
   @Field(() => ID)
   @IsString()
@@ -38,6 +71,9 @@ export class JobApplicationType {
   // Relations
   @Field(() => CompanyType)
   company: CompanyType;
+
+  @Field(() => ApplicationStageType, { nullable: true })
+  currentStage?: ApplicationStageType;
 
   @Field()
   @IsDate()

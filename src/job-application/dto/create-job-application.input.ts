@@ -57,10 +57,4 @@ export class CreateJobApplicationInput {
   @IsString()
   @IsUUID()
   currentStageId?: string;
-
-  @Field({ nullable: true, description: 'Final application status ID' })
-  @IsOptional()
-  @IsString()
-  @IsUUID()
-  finalStatusId?: string;
 }

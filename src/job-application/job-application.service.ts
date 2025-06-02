@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { JobApplication } from '@prisma/client';
+import { NotFoundError } from 'src/common/exceptions/graphql.exceptions';
 import { CreateJobApplicationInput } from './dto/create-job-application.input';
 import { UpdateJobApplicationInput } from './dto/update-job-application.input';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -7,23 +9,136 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class JobApplicationService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(createJobApplicationInput: CreateJobApplicationInput) {
-    return 'This action adds a new jobApplication';
+  async create(
+    userId: string,
+    createJobApplicationInput: CreateJobApplicationInput,
+  ): Promise<JobApplication> {
+    // First verify the job search belongs to the user
+    const jobSearch = await this.prisma.jobSearch.findFirst({
+      where: {
+        id: createJobApplicationInput.jobSearchId,
+        userId: userId,
+      },
+    });
+
+    if (!jobSearch) {
+      throw new NotFoundError('Job search not found or access denied');
+    }
+
+    return await this.prisma.jobApplication.create({
+      data: createJobApplicationInput,
+      include: {
+        company: true,
+        currentStage: true,
+        jobSearch: true,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all jobApplication`;
+  async findAllForUser(userId: string): Promise<JobApplication[]> {
+    return await this.prisma.jobApplication.findMany({
+      where: {
+        jobSearch: {
+          userId: userId,
+        },
+      },
+      include: {
+        company: true,
+        currentStage: true,
+        jobSearch: true,
+      },
+      orderBy: {
+        applicationDate: 'desc',
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} jobApplication`;
+  async findAllForJobSearch(
+    jobSearchId: string,
+    userId: string,
+  ): Promise<JobApplication[]> {
+    return await this.prisma.jobApplication.findMany({
+      where: {
+        jobSearchId,
+        jobSearch: {
+          userId: userId,
+        },
+      },
+      include: {
+        company: true,
+        currentStage: true,
+      },
+      orderBy: {
+        applicationDate: 'desc',
+      },
+    });
   }
 
-  update(id: number, updateJobApplicationInput: UpdateJobApplicationInput) {
-    return `This action updates a #${id} jobApplication`;
+  async findOne(id: string, userId: string): Promise<JobApplication | null> {
+    return await this.prisma.jobApplication.findFirst({
+      where: {
+        id,
+        jobSearch: {
+          userId: userId,
+        },
+      },
+      include: {
+        company: true,
+        currentStage: true,
+        jobSearch: true,
+        comments: {
+          include: {
+            user: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        contactPersons: {
+          include: {
+            contactPerson: true,
+          },
+        },
+      },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} jobApplication`;
+  async update(
+    id: string,
+    userId: string,
+    updateJobApplicationInput: UpdateJobApplicationInput,
+  ): Promise<JobApplication> {
+    // First verify the application belongs to the user
+    const existingApplication = await this.findOne(id, userId);
+    if (!existingApplication) {
+      throw new NotFoundError('Job application not found');
+    }
+
+    return await this.prisma.jobApplication.update({
+      where: { id },
+      data: updateJobApplicationInput,
+      include: {
+        company: true,
+        currentStage: true,
+        jobSearch: true,
+      },
+    });
+  }
+
+  async remove(id: string, userId: string): Promise<JobApplication> {
+    // First verify the application belongs to the user
+    const existingApplication = await this.findOne(id, userId);
+    if (!existingApplication) {
+      throw new NotFoundError('Job application not found');
+    }
+
+    return await this.prisma.jobApplication.delete({
+      where: { id },
+      include: {
+        company: true,
+        currentStage: true,
+        jobSearch: true,
+      },
+    });
   }
 }

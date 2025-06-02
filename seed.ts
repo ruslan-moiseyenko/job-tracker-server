@@ -1,7 +1,6 @@
 // seed.ts
 import {
   ApplicationStage,
-  ApplicationStatus,
   Company,
   ContactPerson,
   JobApplication,
@@ -85,14 +84,9 @@ async function main() {
   const users = await createUsers();
   console.log(`✅ Created ${users.length} users`);
 
-  // Создаем системные этапы и статусы (общие для всех)
+  // Создаем системные этапы (общие для всех)
   const defaultStages = await createDefaultStages();
   console.log(`✅ Created ${defaultStages.length} default application stages`);
-
-  const defaultStatuses = await createDefaultStatuses();
-  console.log(
-    `✅ Created ${defaultStatuses.length} default application statuses`,
-  );
 
   // Для каждого пользователя создаем персональные данные
   for (const user of users) {
@@ -102,15 +96,8 @@ async function main() {
       `✅ Created ${userStages.length} stages for user ${user.email}`,
     );
 
-    // Создаем настраиваемые статусы для пользователя
-    const userStatuses = await createUserStatuses(user.id);
-    console.log(
-      `✅ Created ${userStatuses.length} statuses for user ${user.email}`,
-    );
-
-    // Объединяем системные и пользовательские этапы/статусы
+    // Объединяем системные и пользовательские этапы
     const allStages = [...defaultStages, ...userStages];
-    const allStatuses = [...defaultStatuses, ...userStatuses];
 
     // Создаем поиски работы для пользователя
     const searchesCount = faker.number.int({
@@ -148,10 +135,6 @@ async function main() {
           jobSearch.id,
           company.id,
           faker.helpers.arrayElement(allStages).id,
-          faker.helpers.maybe(
-            () => faker.helpers.arrayElement(allStatuses).id,
-            { probability: 0.6 },
-          ),
         );
 
         // Добавляем 0-3 контактных лица к заявке
@@ -211,7 +194,6 @@ async function cleanDatabase() {
   await prisma.companyNote.deleteMany();
   await prisma.companyLink.deleteMany();
   await prisma.jobApplication.deleteMany();
-  await prisma.applicationStatus.deleteMany();
   await prisma.applicationStage.deleteMany();
   await prisma.jobSearch.deleteMany();
   await prisma.token.deleteMany();
@@ -260,7 +242,6 @@ async function createCompanies(): Promise<Company[]> {
       data: {
         name: companyName,
         website: faker.internet.url(),
-        industry: faker.helpers.arrayElement(INDUSTRIES),
         description: faker.company.catchPhrase(),
         // Создаем 1-3 ссылки для компании
         links: {
@@ -327,6 +308,19 @@ async function createDefaultStages(): Promise<ApplicationStage[]> {
       color: '#9b59b6',
       order: 3,
     },
+    // Final outcome stages
+    {
+      name: 'Offer',
+      description: 'Received an offer',
+      color: '#27ae60',
+      order: 5,
+    },
+    {
+      name: 'Rejected',
+      description: 'Application rejected',
+      color: '#c0392b',
+      order: 99,
+    },
   ];
 
   return Promise.all(
@@ -357,48 +351,6 @@ async function createUserStages(userId: string): Promise<ApplicationStage[]> {
 
   return Promise.all(
     userStages.map((stage) => prisma.applicationStage.create({ data: stage })),
-  );
-}
-
-// Создание системных статусов заявки
-async function createDefaultStatuses(): Promise<ApplicationStatus[]> {
-  console.log('🏁 Creating default application statuses...');
-
-  const defaultStatuses = [
-    { name: 'Offer', description: 'Received an offer', color: '#27ae60' },
-    { name: 'Rejected', description: 'Application rejected', color: '#c0392b' },
-  ];
-
-  return Promise.all(
-    defaultStatuses.map((status) =>
-      prisma.applicationStatus.create({ data: status }),
-    ),
-  );
-}
-
-// Создание пользовательских статусов заявки
-async function createUserStatuses(
-  userId: string,
-): Promise<ApplicationStatus[]> {
-  const userStatuses = [
-    {
-      name: 'Self-Rejected',
-      description: 'Candidate withdrew from the process',
-      color: '#8e44ad',
-      userId,
-    },
-    {
-      name: 'Ghosted',
-      description: 'No response from company after follow-up',
-      color: '#d35400',
-      userId,
-    },
-  ];
-
-  return Promise.all(
-    userStatuses.map((status) =>
-      prisma.applicationStatus.create({ data: status }),
-    ),
   );
 }
 
@@ -468,7 +420,6 @@ async function createJobApplication(
   jobSearchId: string,
   companyId: string,
   currentStageId: string,
-  finalStatusId: string | undefined,
 ): Promise<JobApplication> {
   const positionTitle = faker.helpers.arrayElement(POSITION_TITLES);
 
@@ -505,7 +456,6 @@ ${Array.from({ length: 4 }, () => `- ${faker.lorem.sentence()}`).join('\n')}
       jobLinks,
       applicationDate,
       currentStageId,
-      finalStatusId,
       customColor: faker.helpers.maybe(() => faker.color.rgb()),
     },
   });

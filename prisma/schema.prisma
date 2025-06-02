@@ -29,7 +29,6 @@ model User {
   // relations
   jobSearches         JobSearch[]
   applicationStages   ApplicationStage[]
-  applicationStatuses ApplicationStatus[]
   companyNotes        CompanyNote[]
   comments            Comment[]
   event               Event[]
@@ -92,7 +91,6 @@ model Company {
   id          String   @id @default(uuid())
   name        String   @unique
   website     String?
-  industry    String?
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -136,14 +134,12 @@ model JobApplication {
   salary          Int? // optional salary field
 
   // relations
-  jobSearchId    String             @map("job_search_id")
-  jobSearch      JobSearch          @relation(fields: [jobSearchId], references: [id], onDelete: Cascade)
-  companyId      String             @map("company_id")
-  company        Company            @relation(fields: [companyId], references: [id])
-  currentStageId String?            @map("current_stage_id")
-  currentStage   ApplicationStage?  @relation(fields: [currentStageId], references: [id])
-  finalStatusId  String?            @map("final_status_id")
-  finalStatus    ApplicationStatus? @relation(fields: [finalStatusId], references: [id])
+  jobSearchId    String            @map("job_search_id")
+  jobSearch      JobSearch         @relation(fields: [jobSearchId], references: [id], onDelete: Cascade)
+  companyId      String            @map("company_id")
+  company        Company           @relation(fields: [companyId], references: [id])
+  currentStageId String?           @map("current_stage_id")
+  currentStage   ApplicationStage? @relation(fields: [currentStageId], references: [id])
 
   comments       Comment[]
   contactPersons JobApplicationContactPerson[]
@@ -164,7 +160,7 @@ model ApplicationStage {
   id          String  @id @default(uuid())
   name        String
   description String?
-  color       String
+  color       String?
   order       Int // stages order
 
   // relations
@@ -177,29 +173,9 @@ model ApplicationStage {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, name])
+  @@unique([userId, order])
   @@index([userId, order])
   @@map("application_stages")
-}
-
-// status for the whole application process
-model ApplicationStatus {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-  color       String
-  isDefault   Boolean @default(false) @map("is_default")
-
-  // relations
-  userId       String?          @map("user_id")
-  user         User?            @relation(fields: [userId], references: [id])
-  applications JobApplication[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([userId, name])
-  @@index([isDefault])
-  @@map("application_statuses")
 }
 
 // company's representative

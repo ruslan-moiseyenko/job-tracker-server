@@ -20,6 +20,8 @@ import { JobSearchModule } from './job-search/job-search.module';
 import { RedisModule } from './redis/redis.module';
 import { TokenModule } from './token/token.module';
 import { UserModule } from './user/user.module';
+import { CompanyModule } from './company/company.module';
+import { ApplicationStageModule } from './application-stage/application-stage.module';
 
 @Module({
   imports: [
@@ -62,6 +64,8 @@ import { UserModule } from './user/user.module';
     RedisModule,
     TokenModule,
     UserModule,
+    CompanyModule,
+    ApplicationStageModule,
   ],
   providers: [
     AuthResolver,

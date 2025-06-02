@@ -279,21 +279,12 @@ export class AuthService {
     userAgent: string,
     res?: Response,
   ): Promise<{ accessToken: string; refreshToken: string } | void> {
-    console.log(
-      'DEBUG: refreshTokens called with token =',
-      token,
-      'userAgent =',
-      userAgent,
-    );
-    console.log('DEBUG: About to call mutexService.withLock');
     // Use mutex to prevent concurrent token refresh operations
     return this.mutexService.withLock(`refresh_token_${token}`, async () => {
-      console.log('DEBUG: Inside withLock callback');
       const storedToken = await this.prisma.token.findUnique({
         where: { token },
         include: { user: true },
       });
-      console.log('DEBUG: storedToken =', !!storedToken);
 
       if (!storedToken) {
         throw new AuthenticationError('Invalid refresh token');
@@ -338,7 +329,6 @@ export class AuthService {
 
       // If response object is available, set cookies
       if (res) {
-        console.log('DEBUG: Setting cookies, res =', !!res);
         this.cookieService.setAccessTokenCookie(res, accessToken);
         this.cookieService.setRefreshTokenCookie(res, refreshToken);
         // When using cookies, don't return tokens
@@ -346,12 +336,10 @@ export class AuthService {
       }
 
       // When not using cookies, return tokens
-      console.log('DEBUG: Got No res object -> returning tokens directly');
       const result = {
         accessToken,
         refreshToken,
       };
-      console.log('DEBUG: About to return from refreshTokens:', result);
       return result;
     });
   }

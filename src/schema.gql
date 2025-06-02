@@ -2,8 +2,23 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type ApplicationStageType {
+  color: String
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  name: String!
+  order: Int!
+  updatedAt: DateTime!
+}
+
 type AuthPayload {
   user: GqlUser
+}
+
+input BulkReorderStagesInputDto {
+  """Array of stage IDs with their new orders"""
+  stages: [StageOrderDto!]!
 }
 
 input ChangePasswordInput {
@@ -16,6 +31,25 @@ type ChangeProfileType {
   lastName: String
 }
 
+type Company {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  name: String!
+  updatedAt: DateTime!
+  website: String
+}
+
+type CompanyType {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  industry: String
+  name: String!
+  updatedAt: DateTime!
+  website: String
+}
+
 type ContactType {
   email: String
   firstName: String
@@ -24,6 +58,51 @@ type ContactType {
   phone: String
   position: String
   socialLinks: String
+}
+
+input CreateApplicationStageInputDto {
+  """Stage color (hex)"""
+  color: String
+
+  """Stage description"""
+  description: String
+
+  """ID of stage to insert after (optional, defaults to end)"""
+  insertAfter: String
+
+  """Stage name"""
+  name: String!
+}
+
+input CreateCompanyInput {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+input CreateJobApplicationInput {
+  """Company ID to associate with this application"""
+  companyId: String!
+
+  """Current application stage ID"""
+  currentStageId: String
+
+  """Custom color for the application row"""
+  customColor: String
+
+  """Job description (markdown supported)"""
+  jobDescription: String
+
+  """Array of job posting links"""
+  jobLinks: [String!]!
+
+  """Job search ID this application belongs to"""
+  jobSearchId: String!
+
+  """Job position title"""
+  positionTitle: String!
+
+  """Expected salary"""
+  salary: Int
 }
 
 input CreateJobSearchInput {
@@ -56,6 +135,20 @@ type GqlUser {
   updatedAt: DateTime!
 }
 
+type JobApplicationType {
+  applicationDate: DateTime!
+  company: CompanyType!
+  createdAt: DateTime!
+  currentStage: ApplicationStageType
+  customColor: String
+  id: ID!
+  jobDescription: String
+  jobLinks: [String!]!
+  positionTitle: String!
+  salary: Int
+  updatedAt: DateTime!
+}
+
 input JobSearchFilterInput {
   dateRange: DateRangeInput
   hasApplications: Boolean
@@ -75,16 +168,32 @@ input LoginInput {
   password: String!
 }
 
+input MoveStageInputDto {
+  """Position to move to: "first", "last", or stage ID"""
+  position: String!
+
+  """Stage ID to move"""
+  stageId: String!
+}
+
 type Mutation {
+  bulkReorderStages(input: BulkReorderStagesInputDto!): [ApplicationStageType!]!
   changePassword(input: ChangePasswordInput!): Boolean!
+  createApplicationStage(input: CreateApplicationStageInputDto!): ApplicationStageType!
+  createCompany(createCompanyInput: CreateCompanyInput!): Company!
+  createJobApplication(input: CreateJobApplicationInput!): JobApplicationType!
   createJobSearch(input: CreateJobSearchInput!): JobSearchType!
   deleteJobSearch(id: String!): JobSearchType!
   googleAuth: AuthPayload!
   googleAuthCallback(code: String!): OAuthSuccessResponse!
   login(input: LoginInput!): AuthPayload!
   logout(refreshToken: String): Boolean!
+  moveStage(input: MoveStageInputDto!): ApplicationStageType!
   refreshToken(input: RefreshTokenInput): RefreshTokenResponse!
   register(input: RegisterInput!): AuthPayload!
+  removeApplicationStage(id: String!): ApplicationStageType!
+  removeCompany(id: Int!): Company!
+  removeJobApplication(id: String!): JobApplicationType!
   removeOAuthConnection(connectionId: String!): Boolean!
 
   """Request to change email address. Sends verification code to new email."""
@@ -96,6 +205,10 @@ type Mutation {
   """Reset password using token received via email."""
   resetPassword(input: ResetPasswordInput!): Boolean!
   setLastActiveSearch(searchId: String!): Boolean!
+  swapStageOrders(input: SwapStageOrdersInputDto!): [ApplicationStageType!]!
+  updateApplicationStage(id: String!, input: UpdateApplicationStageInputDto!): ApplicationStageType!
+  updateCompany(updateCompanyInput: UpdateCompanyInput!): Company!
+  updateJobApplication(id: String!, input: UpdateJobApplicationInput!): JobApplicationType!
   updateJobSearch(id: String!, input: UpdateJobSearchInput!): JobSearchType!
   updateUserProfile(data: UserInput!): ChangeProfileType!
 
@@ -126,12 +239,18 @@ input PaginationInput {
 }
 
 type Query {
+  applicationStage(id: String!): ApplicationStageType
+  applicationStages: [ApplicationStageType!]!
+  company(id: Int!): Company!
   getAllContacts: [ContactType!]!
   getAllJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
   getContactById(id: String!): ContactType
   getJobSearchById(id: String!): JobSearchType
   getLastActiveSearch: String
   getMyOAuthConnections: [OAuthConnectionType!]!
+  jobApplication(id: String!): JobApplicationType
+  jobApplications: [JobApplicationType!]!
+  jobApplicationsBySearch(jobSearchId: String!): [JobApplicationType!]!
   me: GqlUser!
 }
 
@@ -166,6 +285,65 @@ input RequestPasswordResetInput {
 input ResetPasswordInput {
   newPassword: String!
   token: String!
+}
+
+input StageOrderDto {
+  """Stage ID"""
+  id: String!
+
+  """Order position"""
+  order: Int!
+}
+
+input SwapStageOrdersInputDto {
+  """First stage ID"""
+  stageId1: String!
+
+  """Second stage ID"""
+  stageId2: String!
+}
+
+input UpdateApplicationStageInputDto {
+  """Stage color (hex)"""
+  color: String
+
+  """Stage description"""
+  description: String
+
+  """Stage name"""
+  name: String
+}
+
+input UpdateCompanyInput {
+  """Example field (placeholder)"""
+  exampleField: Int
+  id: Int!
+}
+
+input UpdateJobApplicationInput {
+  """Company ID to associate with this application"""
+  companyId: String
+
+  """Current application stage ID"""
+  currentStageId: String
+
+  """Custom color for the application row"""
+  customColor: String
+
+  """Job description (markdown supported)"""
+  jobDescription: String
+
+  """Array of job posting links"""
+  jobLinks: [String!]
+
+  """Job search ID this application belongs to"""
+  jobSearchId: String
+
+  """Job position title"""
+  positionTitle: String
+
+  """Expected salary"""
+  salary: Int
 }
 
 input UpdateJobSearchInput {

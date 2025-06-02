@@ -1,10 +1,9 @@
 import { CreateJobApplicationInput } from './create-job-application.input';
-import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
+import { InputType, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class UpdateJobApplicationInput extends PartialType(
   CreateJobApplicationInput,
 ) {
-  @Field(() => Int)
-  id: number;
+  // No ID field needed here since it's passed as a separate argument
 }
