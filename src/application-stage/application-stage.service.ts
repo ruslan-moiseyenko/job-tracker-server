@@ -341,39 +341,4 @@ export class ApplicationStageService {
       return await Promise.all(updatePromises);
     });
   }
-
-  /**
-   * Swap the order of two stages
-   * Convenient method for simple position swaps
-   */
-  async swapStageOrders(
-    userId: string,
-    stageId1: string,
-    stageId2: string,
-  ): Promise<ApplicationStage[]> {
-    return await this.prisma.$transaction(async (tx) => {
-      const [stage1, stage2] = await Promise.all([
-        tx.applicationStage.findFirst({ where: { id: stageId1, userId } }),
-        tx.applicationStage.findFirst({ where: { id: stageId2, userId } }),
-      ]);
-
-      if (!stage1 || !stage2) {
-        throw new NotFoundError('One or more stages not found');
-      }
-
-      // Swap the orders
-      const [updatedStage1, updatedStage2] = await Promise.all([
-        tx.applicationStage.update({
-          where: { id: stageId1 },
-          data: { order: stage2.order },
-        }),
-        tx.applicationStage.update({
-          where: { id: stageId2 },
-          data: { order: stage1.order },
-        }),
-      ]);
-
-      return [updatedStage1, updatedStage2];
-    });
-  }
 }

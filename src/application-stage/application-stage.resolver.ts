@@ -9,7 +9,6 @@ import {
   CreateApplicationStageInputDto,
   UpdateApplicationStageInputDto,
   BulkReorderStagesInputDto,
-  SwapStageOrdersInputDto,
   MoveStageInputDto,
 } from 'src/application-stage/dto/application-stage.dto';
 
@@ -78,18 +77,6 @@ export class ApplicationStageResolver {
     @CurrentUser() user: User,
   ) {
     return this.applicationStageService.bulkReorderStages(user.id, input);
-  }
-
-  @Mutation(() => [ApplicationStageType])
-  async swapStageOrders(
-    @Args('input') input: SwapStageOrdersInputDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.applicationStageService.swapStageOrders(
-      user.id,
-      input.stageId1,
-      input.stageId2,
-    );
   }
 
   @Mutation(() => ApplicationStageType)
