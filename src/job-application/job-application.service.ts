@@ -125,7 +125,7 @@ export class JobApplicationService {
     });
   }
 
-  async remove(id: string, userId: string): Promise<JobApplication> {
+  async delete(id: string, userId: string): Promise<JobApplication> {
     // First verify the application belongs to the user
     const existingApplication = await this.findOne(id, userId);
     if (!existingApplication) {

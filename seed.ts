@@ -76,13 +76,13 @@ async function main() {
   // Сначала очистим таблицы
   await cleanDatabase();
 
-  // Создаем компании заранее, чтобы потом использовать их
-  const companies = await createCompanies();
-  console.log(`✅ Created ${companies.length} companies`);
-
-  // Создаем пользователей и их данные
+  // Создаем пользователей сначала
   const users = await createUsers();
   console.log(`✅ Created ${users.length} users`);
+
+  // Создаем компании для каждого пользователя
+  const companies = await createCompanies(users);
+  console.log(`✅ Created ${companies.length} companies`);
 
   // Создаем системные этапы (общие для всех)
   const defaultStages = await createDefaultStages();
@@ -230,7 +230,7 @@ async function createUsers(): Promise<User[]> {
 }
 
 // Создание компаний
-async function createCompanies(): Promise<Company[]> {
+async function createCompanies(users: User[]): Promise<Company[]> {
   console.log('🏢 Creating companies...');
   const companies: Company[] = [];
 
@@ -238,11 +238,15 @@ async function createCompanies(): Promise<Company[]> {
     // Добавляем уникальный суффикс к имени компании
     const companyName = `${faker.company.name()} ${faker.string.nanoid(5)}`;
 
+    // Распределяем компании между пользователями
+    const randomUser = faker.helpers.arrayElement(users);
+
     const company = await prisma.company.create({
       data: {
         name: companyName,
         website: faker.internet.url(),
         description: faker.company.catchPhrase(),
+        userId: randomUser.id,
         // Создаем 1-3 ссылки для компании
         links: {
           create: Array.from(

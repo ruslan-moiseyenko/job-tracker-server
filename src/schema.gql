@@ -75,8 +75,14 @@ input CreateApplicationStageInputDto {
 }
 
 input CreateCompanyInput {
-  """Example field (placeholder)"""
-  exampleField: Int!
+  """Company description"""
+  description: String
+
+  """Company name"""
+  name: String!
+
+  """Company website URL"""
+  website: String
 }
 
 input CreateJobApplicationInput {
@@ -186,13 +192,19 @@ type Mutation {
   createApplicationStage(input: CreateApplicationStageInputDto!): ApplicationStageType!
 
   """🏢 Companies: Create a new company"""
-  createCompany(createCompanyInput: CreateCompanyInput!): Company!
+  createCompany(input: CreateCompanyInput!): Company!
 
   """🔍 Job Applications: Create a new job application"""
   createJobApplication(input: CreateJobApplicationInput!): JobApplicationType!
 
   """🔎 Job Searches: Create a new job search"""
   createJobSearch(input: CreateJobSearchInput!): JobSearchType!
+
+  """🔍 Job Applications: Delete a job application"""
+  deleteApplication(id: String!): JobApplicationType!
+
+  """🏢 Companies: Delete a company"""
+  deleteCompany(id: String!): Company!
 
   """🔎 Job Searches: Delete a job search"""
   deleteJobSearch(id: String!): JobSearchType!
@@ -212,12 +224,6 @@ type Mutation {
   """🔐 Authentication: Register a new user account"""
   register(input: RegisterInput!): AuthPayload!
   removeApplicationStage(id: String!): ApplicationStageType!
-
-  """🏢 Companies: Delete a company"""
-  removeCompany(id: Int!): Company!
-
-  """🔍 Job Applications: Delete a job application"""
-  removeJobApplication(id: String!): JobApplicationType!
   removeOAuthConnection(connectionId: String!): Boolean!
 
   """Request to change email address. Sends verification code to new email."""
@@ -231,13 +237,12 @@ type Mutation {
 
   """👤 User Profile: Set the last active job search"""
   setLastActiveSearch(searchId: String!): Boolean!
-  swapStageOrders(input: SwapStageOrdersInputDto!): [ApplicationStageType!]!
 
   """📊 Application Stages: Update an existing application stage"""
   updateApplicationStage(id: String!, input: UpdateApplicationStageInputDto!): ApplicationStageType!
 
   """🏢 Companies: Update an existing company"""
-  updateCompany(updateCompanyInput: UpdateCompanyInput!): Company!
+  updateCompany(input: UpdateCompanyInput!): Company!
 
   """🔍 Job Applications: Update an existing job application"""
   updateJobApplication(id: String!, input: UpdateJobApplicationInput!): JobApplicationType!
@@ -281,8 +286,8 @@ type Query {
   """📊 Application Stages: Get all application stages for current user"""
   applicationStages: [ApplicationStageType!]!
 
-  """🏢 Companies: Get a specific company by ID"""
-  company(id: Int!): Company!
+  """🏢 Companies: Get all companies for current user"""
+  getAllCompanies: [Company!]!
 
   """👥 Contacts: Get all contacts"""
   getAllContacts: [ContactType!]!
@@ -291,6 +296,9 @@ type Query {
   🔎 Job Searches: Get all job searches with optional filtering and pagination
   """
   getAllJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
+
+  """🏢 Companies: Get a specific company by ID"""
+  getCompanyById(id: String!): Company!
 
   """👥 Contacts: Get a specific contact by ID"""
   getContactById(id: String!): ContactType
@@ -352,14 +360,6 @@ input StageOrderDto {
   order: Int!
 }
 
-input SwapStageOrdersInputDto {
-  """First stage ID"""
-  stageId1: String!
-
-  """Second stage ID"""
-  stageId2: String!
-}
-
 input UpdateApplicationStageInputDto {
   """Stage color (hex)"""
   color: String
@@ -372,9 +372,17 @@ input UpdateApplicationStageInputDto {
 }
 
 input UpdateCompanyInput {
-  """Example field (placeholder)"""
-  exampleField: Int
-  id: Int!
+  """Company description"""
+  description: String
+
+  """Company ID"""
+  id: String!
+
+  """Company name"""
+  name: String
+
+  """Company website URL"""
+  website: String
 }
 
 input UpdateJobApplicationInput {

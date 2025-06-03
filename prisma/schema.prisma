@@ -29,6 +29,7 @@ model User {
   // relations
   jobSearches         JobSearch[]
   applicationStages   ApplicationStage[]
+  companies           Company[] // Add companies relation
   companyNotes        CompanyNote[]
   comments            Comment[]
   event               Event[]
@@ -89,7 +90,7 @@ model Token {
 
 model Company {
   id          String   @id @default(uuid())
-  name        String   @unique
+  name        String
   website     String?
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
@@ -100,8 +101,13 @@ model Company {
   notes                CompanyNote[]
   companyContactPerson CompanyContactPerson[]
   links                CompanyLink[]
+  // User ownership (for Phase 1, when companies are user-specific)
+  userId               String                 @map("user_id")
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, name]) // Each user can have unique company names
   @@index([name]) // for quick search
+  @@index([userId]) // for user filtering
   @@map("companies")
 }
 

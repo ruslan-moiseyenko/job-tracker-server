@@ -211,7 +211,6 @@ export class ApplicationStageService {
 
   /**
    * Move a stage to a new position relative to other stages
-   * More intuitive than numeric ordering
    */
   async moveStage(
     userId: string,

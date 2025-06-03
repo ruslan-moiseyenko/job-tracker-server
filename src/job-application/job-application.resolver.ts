@@ -70,10 +70,7 @@ export class JobApplicationResolver {
   @Mutation(() => JobApplicationType, {
     description: '🔍 Job Applications: Delete a job application',
   })
-  async removeJobApplication(
-    @Args('id') id: string,
-    @CurrentUser() user: User,
-  ) {
-    return this.jobApplicationService.remove(id, user.id);
+  async deleteApplication(@Args('id') id: string, @CurrentUser() user: User) {
+    return this.jobApplicationService.delete(id, user.id);
   }
 }

@@ -1,10 +1,15 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { User } from '@prisma/client';
+import { GqlAuthGuard } from '../auth/gql-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { CompanyService } from './company.service';
-import { Company } from './entities/company.entity';
 import { CreateCompanyInput } from './dto/create-company.input';
 import { UpdateCompanyInput } from './dto/update-company.input';
+import { Company } from './entities/company.entity';
 
 @Resolver(() => Company)
+@UseGuards(GqlAuthGuard)
 export class CompanyResolver {
   constructor(private readonly companyService: CompanyService) {}
 
@@ -12,43 +17,42 @@ export class CompanyResolver {
     description: '🏢 Companies: Create a new company',
   })
   createCompany(
-    @Args('createCompanyInput') createCompanyInput: CreateCompanyInput,
+    @Args('input') createCompanyInput: CreateCompanyInput,
+    @CurrentUser() user: User,
   ) {
-    return this.companyService.create(createCompanyInput);
+    return this.companyService.create(user.id, createCompanyInput);
   }
 
   @Query(() => [Company], {
-    name: 'company',
-    description: '🏢 Companies: Get all companies',
+    name: 'getAllCompanies',
+    description: '🏢 Companies: Get all companies for current user',
   })
-  findAll() {
-    return this.companyService.findAll();
+  findAll(@CurrentUser() user: User) {
+    return this.companyService.findAllForUser(user.id);
   }
 
   @Query(() => Company, {
-    name: 'company',
+    name: 'getCompanyById',
     description: '🏢 Companies: Get a specific company by ID',
   })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.companyService.findOne(id);
+  findOne(@Args('id') id: string, @CurrentUser() user: User) {
+    return this.companyService.findOneForUser(id, user.id);
   }
 
   @Mutation(() => Company, {
     description: '🏢 Companies: Update an existing company',
   })
   updateCompany(
-    @Args('updateCompanyInput') updateCompanyInput: UpdateCompanyInput,
+    @Args('input') updateCompanyInput: UpdateCompanyInput,
+    @CurrentUser() user: User,
   ) {
-    return this.companyService.update(
-      updateCompanyInput.id,
-      updateCompanyInput,
-    );
+    return this.companyService.update(user.id, updateCompanyInput);
   }
 
   @Mutation(() => Company, {
     description: '🏢 Companies: Delete a company',
   })
-  removeCompany(@Args('id', { type: () => Int }) id: number) {
-    return this.companyService.remove(id);
+  deleteCompany(@Args('id') id: string, @CurrentUser() user: User) {
+    return this.companyService.delete(id, user.id);
   }
 }
