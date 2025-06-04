@@ -19,6 +19,7 @@ import { EmailService } from 'src/email/email.service';
 import { TokenService, TokenType } from 'src/token/token.service';
 import { CookieService } from './cookie.service';
 import { MutexService } from '../common/utils/mutex.service';
+import { ApplicationStageService } from 'src/application-stage/application-stage.service';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly cookieService: CookieService,
     private readonly mutexService: MutexService,
+    private readonly applicationStageService: ApplicationStageService,
   ) {}
 
   async register(input: RegisterInput, userAgent: string, res?: Response) {
@@ -51,6 +53,9 @@ export class AuthService {
         lastName: input.lastName,
       },
     });
+
+    // Create default application stages for the new user
+    await this.applicationStageService.createDefaultStagesForUser(user.id);
 
     // Generate tokens for automatic login
     const accessToken = this.generateAccessToken(user.id);
@@ -370,8 +375,11 @@ export class AuthService {
       // Transaction to ensure data consistency
       try {
         return await this.prisma.$transaction(async (prisma) => {
+          let isNewUser = false;
+
           // If user doesn't exist, create one
           if (!user) {
+            isNewUser = true;
             // Create random password for security
             const randomPassword =
               Math.random().toString(36).slice(-10) +
@@ -424,6 +432,13 @@ export class AuthService {
               );
             }
             throw error;
+          }
+
+          // Create default application stages for new users
+          if (isNewUser) {
+            await this.applicationStageService.createDefaultStagesForUser(
+              user.id,
+            );
           }
 
           return user;

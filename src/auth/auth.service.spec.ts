@@ -9,6 +9,7 @@ import { EmailService } from '../email/email.service';
 import { TokenService } from '../token/token.service';
 import { CookieService } from './cookie.service';
 import { MutexService } from '../common/utils/mutex.service';
+import { ApplicationStageService } from '../application-stage/application-stage.service';
 // import { OAuth2Client } from 'google-auth-library';
 import { User } from '@prisma/client';
 import { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
@@ -109,6 +110,17 @@ const mockMutexService = {
   getActiveLockCount: jest.fn().mockReturnValue(0),
 };
 
+// Mock ApplicationStageService
+const mockApplicationStageService = {
+  createDefaultStagesForUser: jest.fn().mockResolvedValue([
+    { id: 'stage-1', name: 'Applied', userId: 'user-1' },
+    { id: 'stage-2', name: 'Interview', userId: 'user-1' },
+    { id: 'stage-3', name: 'Feedback', userId: 'user-1' },
+    { id: 'stage-4', name: 'Offer', userId: 'user-1' },
+    { id: 'stage-5', name: 'Rejection', userId: 'user-1' },
+  ]),
+};
+
 // Моки для библиотек
 jest.mock('bcryptjs');
 jest.mock('google-auth-library');
@@ -200,6 +212,15 @@ const setupAuthMocks = () => {
   mockConfigService.get.mockImplementation(
     (key: string) => mockConfigValues[key],
   );
+
+  // Reset ApplicationStageService mock
+  mockApplicationStageService.createDefaultStagesForUser.mockResolvedValue([
+    { id: 'stage-1', name: 'Applied', userId: 'user-1' },
+    { id: 'stage-2', name: 'Interview', userId: 'user-1' },
+    { id: 'stage-3', name: 'Feedback', userId: 'user-1' },
+    { id: 'stage-4', name: 'Offer', userId: 'user-1' },
+    { id: 'stage-5', name: 'Rejection', userId: 'user-1' },
+  ]);
 };
 
 describe('AuthService', () => {
@@ -234,6 +255,10 @@ describe('AuthService', () => {
         { provide: TokenService, useValue: mockTokenService },
         { provide: CookieService, useValue: mockCookieService },
         { provide: MutexService, useValue: mockMutexService },
+        {
+          provide: ApplicationStageService,
+          useValue: mockApplicationStageService,
+        },
       ],
     }).compile();
 
@@ -298,6 +323,9 @@ describe('AuthService', () => {
       });
       expect(service.generateAccessToken).toHaveBeenCalledWith(createdUser.id);
       expect(service.generateRefreshToken).toHaveBeenCalled();
+      expect(
+        mockApplicationStageService.createDefaultStagesForUser,
+      ).toHaveBeenCalledWith(createdUser.id);
       expect(prisma.token.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           token: 'test-refresh-token',

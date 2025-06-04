@@ -193,7 +193,7 @@ export class ApplicationStageService {
     const existingStage = await this.prisma.applicationStage.findFirst({
       where: {
         id,
-        userId: userId,
+        userId,
       },
     });
 
@@ -339,5 +339,56 @@ export class ApplicationStageService {
 
       return await Promise.all(updatePromises);
     });
+  }
+
+  /**
+   * Create default application stages for a new user
+   */
+  async createDefaultStagesForUser(
+    userId: string,
+  ): Promise<ApplicationStage[]> {
+    const defaultStages = [
+      {
+        name: 'Applied',
+        description: 'Application submitted',
+        color: '#3498db',
+        order: 1000,
+        userId,
+      },
+      {
+        name: 'Interview',
+        description: 'Interview scheduled',
+        color: '#f39c12',
+        order: 2000,
+        userId,
+      },
+      {
+        name: 'Feedback',
+        description: 'Waiting for feedback',
+        color: '#9b59b6',
+        order: 3000,
+        userId,
+      },
+      {
+        name: 'Offer',
+        description: 'Received an offer',
+        color: '#27ae60',
+        order: 4000,
+        userId,
+      },
+      {
+        name: 'Rejection',
+        description: 'Application rejected',
+        color: '#e74c3c',
+        order: 5000,
+        userId,
+      },
+    ];
+
+    return Promise.all(
+      defaultStages.map((stage) =>
+        this.prisma.applicationStage.create({ data: stage }),
+      ),
+    );
   }
 }

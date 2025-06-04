@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { EmailService } from 'src/email/email.service';
 import { TokenService } from 'src/token/token.service';
 import { CookieService } from './cookie.service';
+import { ApplicationStageService } from 'src/application-stage/application-stage.service';
 
 @Module({
   controllers: [AuthController],
@@ -20,6 +21,7 @@ import { CookieService } from './cookie.service';
     EmailService,
     TokenService,
     CookieService,
+    ApplicationStageService,
   ],
   exports: [CookieService],
 })

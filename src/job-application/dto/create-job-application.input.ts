@@ -41,7 +41,6 @@ export class CreateJobApplicationInput {
   @Min(0)
   salary?: number;
 
-  // Company relation field - reference existing company by ID
   @Field({ description: 'Company ID to associate with this application' })
   @IsString()
   @IsUUID()
