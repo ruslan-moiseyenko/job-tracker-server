@@ -6,7 +6,7 @@ import {
   JobSearchFilterInput,
   PaginationInput,
   UpdateJobSearchInput,
-} from 'src/job-search/types/job-search.input';
+} from 'src/job-search/dto/job-search.input';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()

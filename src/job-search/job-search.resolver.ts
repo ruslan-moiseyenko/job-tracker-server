@@ -9,8 +9,8 @@ import {
   JobSearchFilterInput,
   PaginationInput,
   UpdateJobSearchInput,
-} from 'src/job-search/types/job-search.input';
-import { JobSearchType } from 'src/job-search/types/job-search.type';
+} from 'src/job-search/dto/job-search.input';
+import { JobSearchType } from 'src/job-search/dto/job-search.type';
 
 @Resolver(() => JobSearchType)
 @UseGuards(GqlThrottlerGuard)
