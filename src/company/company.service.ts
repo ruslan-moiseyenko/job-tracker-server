@@ -15,12 +15,13 @@ export class CompanyService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(userId: string, input: CreateCompanyInput): Promise<Company> {
-    // Check for existing company with same name for this user
+    const { name, website, description } = input;
+    // Check if the name is already taken
     const existingCompany = await this.prisma.company.findFirst({
       where: {
         userId,
         name: {
-          equals: input.name,
+          equals: name.trim(),
           mode: 'insensitive',
         },
       },
@@ -32,7 +33,9 @@ export class CompanyService {
 
     return this.prisma.company.create({
       data: {
-        ...input,
+        name: name.trim(),
+        website: website?.trim(),
+        description: description?.trim(),
         userId,
       },
     });
@@ -45,7 +48,7 @@ export class CompanyService {
     });
   }
 
-  async findOneForUser(id: string, userId: string): Promise<Company | null> {
+  async findCompanyById(id: string, userId: string): Promise<Company | null> {
     return this.prisma.company.findFirst({
       where: { id, userId },
     });
@@ -63,7 +66,7 @@ export class CompanyService {
           userId,
           id: { not: id }, // Exclude the current company being updated
           name: {
-            equals: updateData.name,
+            equals: updateData.name.trim(),
             mode: 'insensitive',
           },
         },
@@ -78,13 +81,41 @@ export class CompanyService {
 
     return await this.prisma.company.update({
       where: { id, userId },
-      data: updateData,
+      data: {
+        name: updateData.name?.trim(),
+        website: updateData.website?.trim(),
+        description: updateData.description?.trim(),
+      },
     });
   }
 
   async delete(id: string, userId: string) {
     return await this.prisma.company.delete({
       where: { id, userId },
+    });
+  }
+
+  async searchCompanies(
+    name: string,
+    userId: string,
+  ): Promise<Pick<Company, 'id' | 'name'>[] | null> {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return [];
+    }
+
+    return await this.prisma.company.findMany({
+      select: { id: true, name: true },
+      where: {
+        userId,
+        OR: [
+          { name: { startsWith: trimmedName, mode: 'insensitive' } }, // Prioritize startsWith matches
+          { name: { contains: trimmedName, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { name: 'asc' },
+      take: 10,
     });
   }
 }

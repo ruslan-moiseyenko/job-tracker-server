@@ -317,6 +317,9 @@ type Query {
   """🔍 Job Applications: Get job applications filtered by job search"""
   jobApplicationsBySearch(jobSearchId: String!): [JobApplicationType!]!
   me: GqlUser!
+
+  """🏢 Companies: Search companies by name for autocomplete"""
+  searchCompanies(name: String!): [Company!]!
 }
 
 input RefreshTokenInput {

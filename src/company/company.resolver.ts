@@ -27,7 +27,7 @@ export class CompanyResolver {
     name: 'getAllCompanies',
     description: '🏢 Companies: Get all companies for current user',
   })
-  findAll(@CurrentUser() user: User) {
+  getAllCompanies(@CurrentUser() user: User) {
     return this.companyService.findAllForUser(user.id);
   }
 
@@ -35,8 +35,16 @@ export class CompanyResolver {
     name: 'getCompanyById',
     description: '🏢 Companies: Get a specific company by ID',
   })
-  findOne(@Args('id') id: string, @CurrentUser() user: User) {
-    return this.companyService.findOneForUser(id, user.id);
+  getCompanyById(@Args('id') id: string, @CurrentUser() user: User) {
+    return this.companyService.findCompanyById(id, user.id);
+  }
+
+  @Query(() => [Company], {
+    name: 'searchCompanies',
+    description: '🏢 Companies: Search companies by name for autocomplete',
+  })
+  async searchCompanies(@Args('name') name: string, @CurrentUser() user: User) {
+    return this.companyService.searchCompanies(name, user.id);
   }
 
   @Mutation(() => Company, {

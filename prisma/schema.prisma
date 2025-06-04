@@ -106,7 +106,7 @@ model Company {
   user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, name]) // Each user can have unique company names
-  @@index([name]) // for quick search
+  @@index([userId, name]) // compound index for searchCompanies function
   @@index([userId]) // for user filtering
   @@map("companies")
 }
