@@ -36,8 +36,8 @@ describe('JobApplicationService - Update Company', () => {
     }).compile();
 
     service = module.get<JobApplicationService>(JobApplicationService);
-    prisma = module.get(PrismaService);
-    companyService = module.get(CompanyService);
+    prisma = module.get<jest.Mocked<PrismaService>>(PrismaService);
+    companyService = module.get<jest.Mocked<CompanyService>>(CompanyService);
   });
 
   describe('update with companyId', () => {
@@ -67,11 +67,15 @@ describe('JobApplicationService - Update Company', () => {
         jobSearch: { userId },
       };
 
-      prisma.jobApplication.findFirst.mockResolvedValue(
+      (prisma.jobApplication.findFirst as jest.Mock).mockResolvedValue(
         existingApplication as any,
       );
-      companyService.findCompanyById.mockResolvedValue(newCompany as any);
-      prisma.jobApplication.update.mockResolvedValue(updatedApplication as any);
+      (companyService.findCompanyById as jest.Mock).mockResolvedValue(
+        newCompany as any,
+      );
+      (prisma.jobApplication.update as jest.Mock).mockResolvedValue(
+        updatedApplication as any,
+      );
 
       const result = await service.update(applicationId, userId, {
         companyId: newCompanyId,
@@ -104,10 +108,10 @@ describe('JobApplicationService - Update Company', () => {
         jobSearch: { userId },
       };
 
-      prisma.jobApplication.findFirst.mockResolvedValue(
+      (prisma.jobApplication.findFirst as jest.Mock).mockResolvedValue(
         existingApplication as any,
       );
-      companyService.findCompanyById.mockResolvedValue(null);
+      (companyService.findCompanyById as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.update(applicationId, userId, {
@@ -133,10 +137,10 @@ describe('JobApplicationService - Update Company', () => {
         jobSearch: { userId },
       };
 
-      prisma.jobApplication.findFirst.mockResolvedValue(
+      (prisma.jobApplication.findFirst as jest.Mock).mockResolvedValue(
         existingApplication as any,
       );
-      companyService.findCompanyById.mockResolvedValue(null); // Company not found for this user
+      (companyService.findCompanyById as jest.Mock).mockResolvedValue(null); // Company not found for this user
 
       await expect(
         service.update(applicationId, userId, {
@@ -170,10 +174,12 @@ describe('JobApplicationService - Update Company', () => {
         jobSearch: { userId },
       };
 
-      prisma.jobApplication.findFirst.mockResolvedValue(
+      (prisma.jobApplication.findFirst as jest.Mock).mockResolvedValue(
         existingApplication as any,
       );
-      prisma.jobApplication.update.mockResolvedValue(updatedApplication as any);
+      (prisma.jobApplication.update as jest.Mock).mockResolvedValue(
+        updatedApplication as any,
+      );
 
       const result = await service.update(applicationId, userId, {
         positionTitle: 'Senior Software Engineer',
