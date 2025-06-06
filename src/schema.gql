@@ -40,6 +40,14 @@ type Company {
   website: String
 }
 
+input CompanyInput {
+  """ID of existing company to associate with this application"""
+  existingCompanyId: String
+
+  """Data for creating a new company"""
+  newCompany: NewCompanyInput
+}
+
 type CompanyType {
   createdAt: DateTime!
   description: String
@@ -86,8 +94,8 @@ input CreateCompanyInput {
 }
 
 input CreateJobApplicationInput {
-  """Company ID to associate with this application"""
-  companyId: String!
+  """Company to associate with this application (existing or new)"""
+  company: CompanyInput!
 
   """Current application stage ID"""
   currentStageId: String
@@ -257,6 +265,17 @@ type Mutation {
   verifyEmailChange(input: VerifyEmailChangeInput!): Boolean!
 }
 
+input NewCompanyInput {
+  """Company description"""
+  description: String
+
+  """Company name"""
+  name: String!
+
+  """Company website URL"""
+  website: String
+}
+
 type OAuthConnectionType {
   avatarUrl: String
   createdAt: DateTime!
@@ -292,6 +311,9 @@ type Query {
   """👥 Contacts: Get all contacts"""
   getAllContacts: [ContactType!]!
 
+  """🔍 Job Applications: Get all job applications for current user"""
+  getAllJobApplications: [JobApplicationType!]!
+
   """
   🔎 Job Searches: Get all job searches with optional filtering and pagination
   """
@@ -303,19 +325,16 @@ type Query {
   """👥 Contacts: Get a specific contact by ID"""
   getContactById(id: String!): ContactType
 
+  """🔍 Job Applications: Get a specific job application by ID"""
+  getJobApplicationById(id: String!): JobApplicationType
+
+  """🔍 Job Applications: Get job applications filtered by job search"""
+  getJobApplicationsBySearchId(jobSearchId: String!): [JobApplicationType!]!
+
   """🔎 Job Searches: Get a specific job search by ID"""
   getJobSearchById(id: String!): JobSearchType
   getLastActiveSearch: String
   getMyOAuthConnections: [OAuthConnectionType!]!
-
-  """🔍 Job Applications: Get a specific job application by ID"""
-  jobApplication(id: String!): JobApplicationType
-
-  """🔍 Job Applications: Get all job applications for current user"""
-  jobApplications: [JobApplicationType!]!
-
-  """🔍 Job Applications: Get job applications filtered by job search"""
-  jobApplicationsBySearch(jobSearchId: String!): [JobApplicationType!]!
   me: GqlUser!
 
   """🏢 Companies: Search companies by name for autocomplete"""
@@ -403,9 +422,6 @@ input UpdateJobApplicationInput {
 
   """Array of job posting links"""
   jobLinks: [String!]
-
-  """Job search ID this application belongs to"""
-  jobSearchId: String
 
   """Job position title"""
   positionTitle: String

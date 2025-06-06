@@ -4,5 +4,6 @@ import { CompanyResolver } from './company.resolver';
 
 @Module({
   providers: [CompanyResolver, CompanyService],
+  exports: [CompanyService],
 })
 export class CompanyModule {}

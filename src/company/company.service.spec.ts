@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CompanyService } from './company.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('CompanyService', () => {
   let service: CompanyService;
@@ -9,7 +10,7 @@ describe('CompanyService', () => {
       providers: [
         CompanyService,
         {
-          provide: 'PrismaService',
+          provide: PrismaService,
           useValue: {}, // You can mock methods as needed
         },
       ],

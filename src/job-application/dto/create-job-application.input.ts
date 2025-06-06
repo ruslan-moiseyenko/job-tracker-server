@@ -6,7 +6,10 @@ import {
   IsString,
   IsUUID,
   IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CompanyInput } from './company-input.dto';
 
 @InputType()
 export class CreateJobApplicationInput {
@@ -41,10 +44,12 @@ export class CreateJobApplicationInput {
   @Min(0)
   salary?: number;
 
-  @Field({ description: 'Company ID to associate with this application' })
-  @IsString()
-  @IsUUID()
-  companyId: string;
+  @Field(() => CompanyInput, {
+    description: 'Company to associate with this application (existing or new)',
+  })
+  @ValidateNested()
+  @Type(() => CompanyInput)
+  company: CompanyInput;
 
   @Field({ description: 'Job search ID this application belongs to' })
   @IsString()

@@ -16,8 +16,9 @@ export class CompanyService {
 
   async create(userId: string, input: CreateCompanyInput): Promise<Company> {
     const { name, website, description } = input;
-    // Check if the name is already taken
-    const existingCompany = await this.prisma.company.findFirst({
+
+    // Check for exact match first
+    const exactMatch = await this.prisma.company.findFirst({
       where: {
         userId,
         name: {
@@ -27,8 +28,21 @@ export class CompanyService {
       },
     });
 
-    if (existingCompany) {
+    if (exactMatch) {
       throw new Error(`Company with name "${input.name}" already exists`);
+    }
+
+    // Check for similar companies to prevent duplicates
+    const similarCompanies = await this.findSimilarCompanies(name, userId, 0.9);
+
+    if (similarCompanies.length > 0) {
+      const suggestions = similarCompanies
+        .map((c) => `"${c.name}" (ID: ${c.id})`)
+        .join(', ');
+      throw new Error(
+        `Similar company names found: ${suggestions}. ` +
+          `Consider using existing company or choose a more specific name.`,
+      );
     }
 
     return this.prisma.company.create({
@@ -105,17 +119,75 @@ export class CompanyService {
       return [];
     }
 
-    return await this.prisma.company.findMany({
+    // First, search for companies that start with the query
+    const startsWithResults = await this.prisma.company.findMany({
       select: { id: true, name: true },
       where: {
         userId,
-        OR: [
-          { name: { startsWith: trimmedName, mode: 'insensitive' } }, // Prioritize startsWith matches
-          { name: { contains: trimmedName, mode: 'insensitive' } },
-        ],
+        name: { startsWith: trimmedName, mode: 'insensitive' },
       },
       orderBy: { name: 'asc' },
       take: 10,
+    });
+
+    // If we have enough results, return them
+    if (startsWithResults.length >= 10) {
+      return startsWithResults;
+    }
+
+    // Otherwise, search for companies that contain the query (excluding startsWith results)
+    const containsResults = await this.prisma.company.findMany({
+      select: { id: true, name: true },
+      where: {
+        userId,
+        name: { contains: trimmedName, mode: 'insensitive' },
+        NOT: { name: { startsWith: trimmedName, mode: 'insensitive' } },
+      },
+      orderBy: { name: 'asc' },
+      take: 10 - startsWithResults.length, // Fill remaining slots
+    });
+
+    // Combine results with startsWith first
+    return [...startsWithResults, ...containsResults];
+  }
+
+  /**
+   * Search for companies similar to the given name (fuzzy matching)
+   * Used to prevent duplicates when creating new companies
+   */
+  async findSimilarCompanies(
+    name: string,
+    userId: string,
+    threshold: number = 0.8,
+  ): Promise<Pick<Company, 'id' | 'name'>[]> {
+    const trimmedName = name.trim().toLowerCase();
+
+    // Get all companies for the user
+    const allCompanies = await this.prisma.company.findMany({
+      select: { id: true, name: true },
+      where: { userId },
+    });
+
+    // Simple similarity check
+    return allCompanies.filter((company) => {
+      const companyName = company.name.toLowerCase();
+
+      if (companyName === trimmedName) {
+        return true;
+      }
+
+      // Check if one name contains the other and they're similar length
+      const lengthRatio =
+        Math.min(trimmedName.length, companyName.length) /
+        Math.max(trimmedName.length, companyName.length);
+
+      if (lengthRatio >= threshold) {
+        return (
+          companyName.includes(trimmedName) || trimmedName.includes(companyName)
+        );
+      }
+
+      return false;
     });
   }
 }

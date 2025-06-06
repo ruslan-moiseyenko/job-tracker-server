@@ -24,7 +24,7 @@ export class JobApplicationResolver {
   }
 
   @Query(() => [JobApplicationType], {
-    name: 'jobApplications',
+    name: 'getAllJobApplications',
     description:
       '🔍 Job Applications: Get all job applications for current user',
   })
@@ -33,11 +33,11 @@ export class JobApplicationResolver {
   }
 
   @Query(() => [JobApplicationType], {
-    name: 'jobApplicationsBySearch',
+    name: 'getJobApplicationsBySearchId',
     description:
       '🔍 Job Applications: Get job applications filtered by job search',
   })
-  async findJobApplicationsBySearch(
+  async findJobApplicationsBySearchId(
     @Args('jobSearchId') jobSearchId: string,
     @CurrentUser() user: User,
   ) {
@@ -45,7 +45,7 @@ export class JobApplicationResolver {
   }
 
   @Query(() => JobApplicationType, {
-    name: 'jobApplication',
+    name: 'getJobApplicationById',
     nullable: true,
     description: '🔍 Job Applications: Get a specific job application by ID',
   })

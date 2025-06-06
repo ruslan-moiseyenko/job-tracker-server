@@ -134,7 +134,7 @@ model JobApplication {
   id              String   @id @default(uuid())
   positionTitle   String   @map("position_title")
   jobDescription  String?  @map("job_description") // to keep formatted job description
-  jobLinks        String[] @map("job_links") // array of links for the description
+  jobLinks        String[] @map("job_links") // array of links to the job description
   applicationDate DateTime @default(now()) @map("application_date")
   customColor     String?  @map("custom_color") // color for the whole row in a table
   salary          Int? // optional salary field
