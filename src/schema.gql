@@ -210,6 +210,7 @@ type Mutation {
 
   """🔍 Job Applications: Delete a job application"""
   deleteApplication(id: String!): JobApplicationType!
+  deleteApplicationStage(id: String!): ApplicationStageType!
 
   """🏢 Companies: Delete a company"""
   deleteCompany(id: String!): Company!
@@ -224,15 +225,14 @@ type Mutation {
 
   """🔐 Authentication: Logout user and invalidate tokens"""
   logout(refreshToken: String): Boolean!
-  moveStage(input: MoveStageInputDto!): ApplicationStageType!
 
   """🔐 Authentication: Refresh access token using refresh token"""
   refreshToken(input: RefreshTokenInput): RefreshTokenResponse!
 
   """🔐 Authentication: Register a new user account"""
   register(input: RegisterInput!): AuthPayload!
-  removeApplicationStage(id: String!): ApplicationStageType!
   removeOAuthConnection(connectionId: String!): Boolean!
+  reorderStage(input: MoveStageInputDto!): ApplicationStageType!
 
   """Request to change email address. Sends verification code to new email."""
   requestEmailChange(input: RequestEmailChangeInput!): Boolean!
@@ -299,12 +299,6 @@ input PaginationInput {
 }
 
 type Query {
-  """📊 Application Stages: Get a specific application stage by ID"""
-  applicationStage(id: String!): ApplicationStageType
-
-  """📊 Application Stages: Get all application stages for current user"""
-  applicationStages: [ApplicationStageType!]!
-
   """🏢 Companies: Get all companies for current user"""
   getAllCompanies: [Company!]!
 
@@ -318,6 +312,14 @@ type Query {
   🔎 Job Searches: Get all job searches with optional filtering and pagination
   """
   getAllJobSearches(filter: JobSearchFilterInput, pagination: PaginationInput): [JobSearchType!]!
+
+  """
+  📊 Application Stages: Get all application stages for current user (alias)
+  """
+  getAllStages: [ApplicationStageType!]!
+
+  """📊 Application Stages: Get a specific application stage by ID"""
+  getApplicationStageById(id: String!): ApplicationStageType
 
   """🏢 Companies: Get a specific company by ID"""
   getCompanyById(id: String!): Company!

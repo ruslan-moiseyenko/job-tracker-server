@@ -188,31 +188,73 @@ export class ApplicationStageService {
     });
   }
 
-  async remove(id: string, userId: string): Promise<ApplicationStage> {
-    // Verify the stage belongs to the user (can't delete system stages)
-    const existingStage = await this.prisma.applicationStage.findFirst({
-      where: {
-        id,
-        userId,
-      },
-    });
+  async delete(id: string, userId: string): Promise<ApplicationStage> {
+    return await this.prisma.$transaction(async (tx) => {
+      // First, get the stage to verify it exists and belongs to user
+      const existingStage = await tx.applicationStage.findFirst({
+        where: {
+          id,
+          userId,
+        },
+      });
 
-    if (!existingStage) {
-      throw new NotFoundError(
-        'Application stage not found or cannot be deleted',
-      );
-    }
+      if (!existingStage) {
+        throw new NotFoundError(
+          'Application stage not found or cannot be deleted',
+        );
+      }
 
-    // Just delete the stage - no need to compact orders with gap-based system
-    return await this.prisma.applicationStage.delete({
-      where: { id },
+      // Check if the stage is currently being used by any applications
+      const applicationUsingStage = await tx.jobApplication.findFirst({
+        where: {
+          currentStageId: id,
+          jobSearch: {
+            userId, // Check if applications belongs to the user
+          },
+        },
+      });
+
+      if (applicationUsingStage) {
+        throw new ConflictError(
+          `Cannot delete stage "${existingStage.name}" because it is currently being used by applications. Please move applications to a different stage first.`,
+        );
+      }
+
+      // Get users who have more than 1 stage using raw query
+      const usersWithMultipleStages = await tx.$queryRaw<{ user_id: string }[]>`
+        SELECT "user_id" 
+        FROM "application_stages" 
+        WHERE "user_id" = ${userId}
+        GROUP BY "user_id" 
+        HAVING COUNT(*) > 1
+      `;
+
+      // Attempt to delete only if this user has more than 1 stage
+      const deleteResult = await tx.applicationStage.deleteMany({
+        where: {
+          id,
+          userId: {
+            in: usersWithMultipleStages.map((r) => r.user_id),
+          },
+        },
+      });
+
+      // If nothing was deleted, it means this was the last stage
+      if (deleteResult.count === 0) {
+        throw new ConflictError(
+          'Cannot delete the last application stage. At least one stage must exist.',
+        );
+      }
+
+      // Return the stage that was deleted
+      return existingStage;
     });
   }
 
   /**
    * Move a stage to a new position relative to other stages
    */
-  async moveStage(
+  async reorderStage(
     userId: string,
     stageId: string,
     position: 'first' | 'last' | { after: string } | { before: string },
@@ -390,5 +432,40 @@ export class ApplicationStageService {
         this.prisma.applicationStage.create({ data: stage }),
       ),
     );
+  }
+
+  /**
+   * Get applications that would be affected by deleting a stage
+   * Useful for showing warnings to users before deletion
+   */
+  async getApplicationsUsingStage(
+    stageId: string,
+    userId: string,
+  ): Promise<{ count: number; applicationTitles: string[] }> {
+    const applications = await this.prisma.jobApplication.findMany({
+      where: {
+        currentStageId: stageId,
+        jobSearch: {
+          userId,
+        },
+      },
+      select: {
+        id: true,
+        positionTitle: true,
+        company: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      take: 5, // Limit to first 5 for display purposes
+    });
+
+    return {
+      count: applications.length,
+      applicationTitles: applications.map(
+        (app) => `${app.positionTitle} at ${app.company.name}`,
+      ),
+    };
   }
 }

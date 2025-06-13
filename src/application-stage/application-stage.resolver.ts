@@ -20,7 +20,7 @@ export class ApplicationStageResolver {
   ) {}
 
   @Query(() => [ApplicationStageType], {
-    name: 'applicationStages',
+    name: 'getAllStages',
     description:
       '📊 Application Stages: Get all application stages for current user',
   })
@@ -28,8 +28,19 @@ export class ApplicationStageResolver {
     return this.applicationStageService.findAllForUser(user.id);
   }
 
+  // TODO: check duplications
+  @Query(() => [ApplicationStageType], {
+    name: 'getAllStages',
+    description:
+      '📊 Application Stages: Get all application stages for current user (alias)',
+  })
+  async getAllStages(@CurrentUser() user: User) {
+    return this.applicationStageService.findAllForUser(user.id);
+  }
+
+  // TODO: check duplications
   @Query(() => ApplicationStageType, {
-    name: 'applicationStage',
+    name: 'getApplicationStageById',
     nullable: true,
     description:
       '📊 Application Stages: Get a specific application stage by ID',
@@ -63,11 +74,11 @@ export class ApplicationStageResolver {
   }
 
   @Mutation(() => ApplicationStageType)
-  async removeApplicationStage(
+  async deleteApplicationStage(
     @Args('id') id: string,
     @CurrentUser() user: User,
   ) {
-    return this.applicationStageService.remove(id, user.id);
+    return this.applicationStageService.delete(id, user.id);
   }
 
   // for drag-and-drop reordering
@@ -80,7 +91,7 @@ export class ApplicationStageResolver {
   }
 
   @Mutation(() => ApplicationStageType)
-  async moveStage(
+  async reorderStage(
     @Args('input') input: MoveStageInputDto,
     @CurrentUser() user: User,
   ) {
@@ -99,7 +110,7 @@ export class ApplicationStageResolver {
       );
     }
 
-    return this.applicationStageService.moveStage(
+    return this.applicationStageService.reorderStage(
       user.id,
       input.stageId,
       position,
