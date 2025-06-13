@@ -3,6 +3,10 @@ import { CreateCompanyInput } from './dto/create-company.input';
 import { UpdateCompanyInput } from './dto/update-company.input';
 import { Company } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import {
+  NotFoundError,
+  ConflictError,
+} from 'src/common/exceptions/graphql.exceptions';
 
 export interface ICreateCompanyInput {
   name: string;
@@ -104,8 +108,35 @@ export class CompanyService {
   }
 
   async delete(id: string, userId: string) {
-    return await this.prisma.company.delete({
-      where: { id, userId },
+    return await this.prisma.$transaction(async (tx) => {
+      // First, verify the company exists and belongs to user
+      const existingCompany = await tx.company.findFirst({
+        where: { id, userId },
+      });
+
+      if (!existingCompany) {
+        throw new NotFoundError('Company not found or cannot be deleted');
+      }
+
+      // Check if the company is currently being used by any applications
+      const applicationUsingCompany = await tx.jobApplication.findFirst({
+        where: {
+          companyId: id,
+          jobSearch: {
+            userId, // Ensure we only check applications belonging to this user
+          },
+        },
+      });
+
+      if (applicationUsingCompany) {
+        throw new ConflictError(
+          `Cannot delete company "${existingCompany.name}" because it is currently being used by applications. Please reassign applications to a different company first.`,
+        );
+      }
+
+      return await tx.company.delete({
+        where: { id, userId },
+      });
     });
   }
 

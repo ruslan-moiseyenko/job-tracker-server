@@ -103,4 +103,22 @@ export class JobSearchService {
       where: { id, userId },
     });
   }
+
+  /**
+   * Get count of applications that would be deleted along with the job search
+   * Useful for showing warnings to users before deletion
+   */
+  async getApplicationsCount(
+    jobSearchId: string,
+    userId: string,
+  ): Promise<number> {
+    return await this.prisma.jobApplication.count({
+      where: {
+        jobSearchId,
+        jobSearch: {
+          userId,
+        },
+      },
+    });
+  }
 }
