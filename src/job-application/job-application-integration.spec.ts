@@ -4,6 +4,7 @@ import { CompanyService } from '../company/company.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobApplicationInput } from './dto/create-job-application.input';
 import { BadRequestException } from '@nestjs/common';
+import { NotFoundError } from '../common/exceptions/graphql.exceptions';
 
 describe('JobApplicationService - Integration with CompanyInput', () => {
   let jobApplicationService: JobApplicationService;
@@ -30,7 +31,14 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JobApplicationService,
-        CompanyService,
+        {
+          provide: CompanyService,
+          useValue: {
+            create: jest.fn(),
+            findCompanyById: jest.fn(),
+            searchCompanies: jest.fn(),
+          },
+        },
         {
           provide: PrismaService,
           useValue: mockPrismaService,
@@ -71,7 +79,7 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
       );
 
       // Mock company lookup
-      (prismaService.company.findFirst as jest.Mock).mockResolvedValue(
+      (companyService.findCompanyById as jest.Mock).mockResolvedValue(
         existingCompany,
       );
 
@@ -92,16 +100,21 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
       const result = await jobApplicationService.create(mockUser.id, input);
 
       expect(result).toEqual(mockJobApplication);
-      expect(prismaService.company.findFirst).toHaveBeenCalledWith({
-        where: { id: 'comp-1', userId: 'user-1' },
-      });
+      expect(companyService.findCompanyById).toHaveBeenCalledWith(
+        'comp-1',
+        'user-1',
+      );
       expect(prismaService.jobApplication.create).toHaveBeenCalledWith({
         data: {
           positionTitle: 'Software Engineer',
           companyId: 'comp-1',
-          userId: 'user-1',
           jobLinks: ['https://example.com/job'],
           jobSearchId: 'search-1',
+        },
+        include: {
+          company: true,
+          currentStage: true,
+          jobSearch: true,
         },
       });
     });
@@ -118,7 +131,7 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
         mockJobSearch,
       );
 
-      (prismaService.company.findFirst as jest.Mock).mockResolvedValue(null);
+      (companyService.findCompanyById as jest.Mock).mockResolvedValue(null);
 
       const input: CreateJobApplicationInput = {
         positionTitle: 'Software Engineer',
@@ -131,10 +144,10 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
 
       await expect(
         jobApplicationService.create(mockUser.id, input),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(NotFoundError);
       await expect(
         jobApplicationService.create(mockUser.id, input),
-      ).rejects.toThrow('Company with ID "non-existent" not found');
+      ).rejects.toThrow('Company not found');
     });
   });
 
@@ -159,10 +172,8 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
         mockJobSearch,
       );
 
-      // Mock company creation (no duplicates found)
-      (prismaService.company.findFirst as jest.Mock).mockResolvedValue(null);
-      (prismaService.company.findMany as jest.Mock).mockResolvedValue([]);
-      (prismaService.company.create as jest.Mock).mockResolvedValue(newCompany);
+      // Mock company creation
+      (companyService.create as jest.Mock).mockResolvedValue(newCompany);
 
       // Mock job application creation
       (prismaService.jobApplication.create as jest.Mock).mockResolvedValue(
@@ -185,21 +196,22 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
       const result = await jobApplicationService.create(mockUser.id, input);
 
       expect(result).toEqual(mockJobApplication);
-      expect(prismaService.company.create).toHaveBeenCalledWith({
-        data: {
-          name: 'Tesla Inc',
-          website: 'https://tesla.com',
-          description: 'Electric vehicles and clean energy',
-          userId: 'user-1',
-        },
+      expect(companyService.create).toHaveBeenCalledWith('user-1', {
+        name: 'Tesla Inc',
+        website: 'https://tesla.com',
+        description: 'Electric vehicles and clean energy',
       });
       expect(prismaService.jobApplication.create).toHaveBeenCalledWith({
         data: {
           positionTitle: 'ML Engineer',
           companyId: 'comp-2',
-          userId: 'user-1',
           jobLinks: ['https://example.com/job'],
           jobSearchId: 'search-1',
+        },
+        include: {
+          company: true,
+          currentStage: true,
+          jobSearch: true,
         },
       });
     });
@@ -218,11 +230,13 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
         mockJobSearch,
       );
 
-      // Mock exact match check (none found)
-      (prismaService.company.findFirst as jest.Mock).mockResolvedValue(null);
+      // Mock company creation to throw an error
+      (companyService.create as jest.Mock).mockRejectedValue(
+        new Error('Company "Tesla Inc" already exists'),
+      );
 
-      // Mock similar companies check (found similar)
-      (prismaService.company.findMany as jest.Mock).mockResolvedValue([
+      // Mock searchCompanies to return similar companies
+      (companyService.searchCompanies as jest.Mock).mockResolvedValue([
         similarCompany,
       ]);
 
@@ -240,7 +254,7 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
       await expect(
         jobApplicationService.create(mockUser.id, input),
       ).rejects.toThrow(
-        'Similar company names found: "Tesla Motors" (ID: comp-3)',
+        'Company "Tesla Inc" already exists. Use existing company with ID: comp-3',
       );
     });
   });

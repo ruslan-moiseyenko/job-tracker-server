@@ -35,6 +35,7 @@ describe('JobApplicationService - Company Integration', () => {
       findCompanyById: jest.fn(),
       create: jest.fn(),
       findSimilarCompanies: jest.fn(),
+      searchCompanies: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -13,9 +13,10 @@ import { CompanyInput } from './company-input.dto';
 
 @InputType()
 export class CreateJobApplicationInput {
-  @Field({ description: 'Job position title' })
+  @Field({ nullable: true, description: 'Job position title' })
+  @IsOptional()
   @IsString()
-  positionTitle: string;
+  positionTitle?: string;
 
   @Field({
     nullable: true,

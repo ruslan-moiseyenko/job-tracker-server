@@ -464,7 +464,8 @@ export class ApplicationStageService {
     return {
       count: applications.length,
       applicationTitles: applications.map(
-        (app) => `${app.positionTitle} at ${app.company.name}`,
+        (app) =>
+          `${app.positionTitle || 'Untitled Position'} at ${app.company.name}`,
       ),
     };
   }

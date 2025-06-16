@@ -132,7 +132,7 @@ model CompanyLink {
 // for specific vacancy
 model JobApplication {
   id              String   @id @default(uuid())
-  positionTitle   String   @map("position_title")
+  positionTitle   String?  @map("position_title")
   jobDescription  String?  @map("job_description") // to keep formatted job description
   jobLinks        String[] @map("job_links") // array of links to the job description
   applicationDate DateTime @default(now()) @map("application_date")

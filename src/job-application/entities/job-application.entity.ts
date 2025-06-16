@@ -41,9 +41,10 @@ export class JobApplicationType {
   @IsString()
   id: string;
 
-  @Field()
+  @Field({ nullable: true })
+  @IsOptional()
   @IsString()
-  positionTitle: string;
+  positionTitle?: string;
 
   @Field({ nullable: true })
   @IsOptional()

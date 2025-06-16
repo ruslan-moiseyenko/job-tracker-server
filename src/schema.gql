@@ -113,7 +113,7 @@ input CreateJobApplicationInput {
   jobSearchId: String!
 
   """Job position title"""
-  positionTitle: String!
+  positionTitle: String
 
   """Expected salary"""
   salary: Int
@@ -158,7 +158,7 @@ type JobApplicationType {
   id: ID!
   jobDescription: String
   jobLinks: [String!]!
-  positionTitle: String!
+  positionTitle: String
   salary: Int
   updatedAt: DateTime!
 }
