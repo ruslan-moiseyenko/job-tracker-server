@@ -65,8 +65,7 @@ export class JobApplicationService {
 
           if (existingCompanies && existingCompanies.length > 0) {
             throw new Error(
-              `Company "${createJobApplicationInput.company.newCompany.name}" already exists. ` +
-                `Use existing company with ID: ${existingCompanies[0].id}`,
+              `Company "${createJobApplicationInput.company.newCompany.name}" already exists.`,
             );
           }
         }

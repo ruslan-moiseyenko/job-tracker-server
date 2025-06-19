@@ -253,9 +253,7 @@ describe('JobApplicationService - Integration with CompanyInput', () => {
 
       await expect(
         jobApplicationService.create(mockUser.id, input),
-      ).rejects.toThrow(
-        'Company "Tesla Inc" already exists. Use existing company with ID: comp-3',
-      );
+      ).rejects.toThrow('Company "Tesla Inc" already exists.');
     });
   });
 
