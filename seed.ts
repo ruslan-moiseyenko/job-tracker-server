@@ -191,7 +191,6 @@ async function cleanDatabase() {
   await prisma.jobApplicationContactPerson.deleteMany();
   await prisma.companyContactPerson.deleteMany();
   await prisma.contactPerson.deleteMany();
-  await prisma.companyNote.deleteMany();
   await prisma.companyLink.deleteMany();
   await prisma.jobApplication.deleteMany();
   await prisma.applicationStage.deleteMany();
@@ -536,37 +535,39 @@ async function createComment(jobApplicationId: string, userId: string) {
 
 // Создание заметки о компании
 async function createCompanyNote(companyId: string, userId: string) {
-  // Проверяем, существует ли уже заметка для этой компании и пользователя
-  const existingNote = await prisma.companyNote.findFirst({
+  // Get the existing company
+  const existingCompany = await prisma.company.findFirst({
     where: {
-      companyId,
+      id: companyId,
       userId,
     },
   });
 
-  // Если заметка уже существует, не создаем новую
-  if (existingNote) {
-    return existingNote;
+  // If company doesn't exist or already has a note, skip
+  if (!existingCompany || existingCompany.companyNote) {
+    return existingCompany;
   }
 
   const isBlacklisted = faker.datatype.boolean(0.2); // 20% шанс
   const isFavorite = !isBlacklisted && faker.datatype.boolean(0.3); // 30% шанс, если не в черном списке
 
-  return prisma.companyNote.create({
+  const companyNote = faker.helpers.arrayElement([
+    faker.lorem.paragraph(),
+    isBlacklisted
+      ? `Avoid this company because: ${faker.lorem.sentence()}`
+      : `Good company because: ${faker.lorem.sentence()}`,
+    `Company culture: ${faker.lorem.sentence()}`,
+    `Known for: ${faker.lorem.sentence()}`,
+    `Glassdoor rating: ${faker.number.float({ min: 1, max: 5, fractionDigits: 1 })}/5`,
+  ]);
+
+  // Update company with flags and note
+  return prisma.company.update({
+    where: { id: companyId },
     data: {
-      companyId,
-      userId,
-      content: faker.helpers.arrayElement([
-        faker.lorem.paragraph(),
-        isBlacklisted
-          ? `Avoid this company because: ${faker.lorem.sentence()}`
-          : `Good company because: ${faker.lorem.sentence()}`,
-        `Company culture: ${faker.lorem.sentence()}`,
-        `Known for: ${faker.lorem.sentence()}`,
-        `Glassdoor rating: ${faker.number.float({ min: 1, max: 5, fractionDigits: 1 })}/5`,
-      ]),
       isBlacklisted,
       isFavorite,
+      companyNote,
     },
   });
 }

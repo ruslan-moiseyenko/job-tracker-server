@@ -1,5 +1,5 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { IsDate, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsOptional, IsString, IsBoolean } from 'class-validator';
 
 @ObjectType()
 export class Company {
@@ -20,6 +20,11 @@ export class Company {
   @IsOptional()
   description?: string;
 
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  companyNote?: string;
+
   @Field()
   @IsDate()
   createdAt: Date;
@@ -28,13 +33,17 @@ export class Company {
   @IsDate()
   updatedAt: Date;
 
-  // Relations - these would be resolved using @ResolveField in the resolver
-  // Commented out for now, but you can add them when needed
-  // @Field(() => [JobApplicationType], { nullable: true })
-  // applications?: JobApplicationType[];
+  @Field(() => Boolean, {
+    description: 'Whether this company is marked as favorite by the user',
+  })
+  @IsBoolean()
+  isFavorite: boolean;
 
-  // @Field(() => [CompanyNoteType], { nullable: true })
-  // notes?: CompanyNoteType[];
+  @Field(() => Boolean, {
+    description: 'Whether this company is blacklisted by the user',
+  })
+  @IsBoolean()
+  isBlacklisted: boolean;
 
   // @Field(() => [CompanyContactPersonType], { nullable: true })
   // companyContactPersons?: CompanyContactPersonType[];

@@ -47,6 +47,22 @@ export class CompanyResolver {
     return this.companyService.searchCompanies(name, user.id);
   }
 
+  @Query(() => [Company], {
+    name: 'getBlacklistedCompanies',
+    description: '🚫 Companies: Get all blacklisted companies for current user',
+  })
+  getBlacklistedCompanies(@CurrentUser() user: User) {
+    return this.companyService.findBlacklistedCompanies(user.id);
+  }
+
+  @Query(() => [Company], {
+    name: 'getFavoriteCompanies',
+    description: '⭐ Companies: Get all favorite companies for current user',
+  })
+  getFavoriteCompanies(@CurrentUser() user: User) {
+    return this.companyService.findFavoriteCompanies(user.id);
+  }
+
   @Mutation(() => Company, {
     description: '🏢 Companies: Update an existing company',
   })

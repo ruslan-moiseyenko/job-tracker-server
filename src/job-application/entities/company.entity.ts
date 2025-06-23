@@ -27,6 +27,11 @@ export class CompanyType {
   @IsString()
   description?: string;
 
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  companyNote?: string;
+
   @Field()
   @IsDate()
   createdAt: Date;

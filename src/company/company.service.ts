@@ -6,20 +6,56 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import {
   NotFoundError,
   ConflictError,
+  BadUserInputError,
 } from 'src/common/exceptions/graphql.exceptions';
 
 export interface ICreateCompanyInput {
   name: string;
   website?: string;
   description?: string;
+  isFavorite?: boolean;
+  isBlacklisted?: boolean;
+  companyNote?: string;
 }
 
 @Injectable()
 export class CompanyService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Automatically handles mutual exclusivity between blacklist and favorite flags
+   * If a company is being blacklisted, it's automatically removed from favorites
+   * If a company is being favorited, it's automatically removed from blacklist
+   */
+  private resolveMutuallyExclusiveFlags(
+    isBlacklisted?: boolean,
+    isFavorite?: boolean,
+  ): { resolvedBlacklisted: boolean; resolvedFavorite: boolean } {
+    // If explicitly setting to blacklist, remove from favorites
+    if (isBlacklisted === true) {
+      return {
+        resolvedBlacklisted: true,
+        resolvedFavorite: false,
+      };
+    }
+
+    // If explicitly setting to favorite, remove from blacklist
+    if (isFavorite === true) {
+      return {
+        resolvedBlacklisted: false,
+        resolvedFavorite: true,
+      };
+    }
+
+    // If both are false or undefined, keep as provided
+    return {
+      resolvedBlacklisted: isBlacklisted || false,
+      resolvedFavorite: isFavorite || false,
+    };
+  }
+
   async create(userId: string, input: CreateCompanyInput): Promise<Company> {
-    const { name, website, description } = input;
+    const { name, website, description, companyNote } = input;
 
     // Check for exact match first
     const exactMatch = await this.prisma.company.findFirst({
@@ -54,7 +90,10 @@ export class CompanyService {
         name: name.trim(),
         website: website?.trim(),
         description: description?.trim(),
+        companyNote: companyNote?.trim(),
         userId,
+        isBlacklisted: false,
+        isFavorite: false,
       },
     });
   }
@@ -77,6 +116,7 @@ export class CompanyService {
     updateCompanyInput: UpdateCompanyInput,
   ): Promise<Company> {
     const { id, ...updateData } = updateCompanyInput;
+
     // Check if new name already exists
     if (updateData.name) {
       const existingCompany = await this.prisma.company.findFirst({
@@ -97,12 +137,23 @@ export class CompanyService {
       }
     }
 
+    // Resolve mutually exclusive flags
+    const { resolvedBlacklisted, resolvedFavorite } =
+      this.resolveMutuallyExclusiveFlags(
+        updateData.isBlacklisted,
+        updateData.isFavorite,
+      );
+
+    // Update company with all fields including companyNote
     return await this.prisma.company.update({
       where: { id, userId },
       data: {
         name: updateData.name?.trim(),
         website: updateData.website?.trim(),
         description: updateData.description?.trim(),
+        companyNote: updateData.companyNote?.trim(),
+        isBlacklisted: resolvedBlacklisted,
+        isFavorite: resolvedFavorite,
       },
     });
   }
@@ -219,6 +270,38 @@ export class CompanyService {
       }
 
       return false;
+    });
+  }
+
+  async findBlacklistedCompanies(userId: string): Promise<Company[]> {
+    if (!userId?.trim()) {
+      throw new BadUserInputError('User ID is required');
+    }
+
+    return this.prisma.company.findMany({
+      where: {
+        userId,
+        isBlacklisted: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+  }
+
+  async findFavoriteCompanies(userId: string): Promise<Company[]> {
+    if (!userId?.trim()) {
+      throw new BadUserInputError('User ID is required');
+    }
+
+    return this.prisma.company.findMany({
+      where: {
+        userId,
+        isFavorite: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
     });
   }
 }

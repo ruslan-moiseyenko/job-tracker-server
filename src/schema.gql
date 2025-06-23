@@ -32,9 +32,16 @@ type ChangeProfileType {
 }
 
 type Company {
+  companyNote: String
   createdAt: DateTime!
   description: String
   id: ID!
+
+  """Whether this company is blacklisted by the user"""
+  isBlacklisted: Boolean!
+
+  """Whether this company is marked as favorite by the user"""
+  isFavorite: Boolean!
   name: String!
   updatedAt: DateTime!
   website: String
@@ -49,6 +56,7 @@ input CompanyInput {
 }
 
 type CompanyType {
+  companyNote: String
   createdAt: DateTime!
   description: String
   id: ID!
@@ -83,8 +91,17 @@ input CreateApplicationStageInputDto {
 }
 
 input CreateCompanyInput {
+  """Company note content"""
+  companyNote: String
+
   """Company description"""
   description: String
+
+  """Mark company as blacklisted"""
+  isBlacklisted: Boolean
+
+  """Mark company as favorite"""
+  isFavorite: Boolean
 
   """Company name"""
   name: String!
@@ -321,11 +338,17 @@ type Query {
   """📊 Application Stages: Get a specific application stage by ID"""
   getApplicationStageById(id: String!): ApplicationStageType
 
+  """🚫 Companies: Get all blacklisted companies for current user"""
+  getBlacklistedCompanies: [Company!]!
+
   """🏢 Companies: Get a specific company by ID"""
   getCompanyById(id: String!): Company!
 
   """👥 Contacts: Get a specific contact by ID"""
   getContactById(id: String!): ContactType
+
+  """⭐ Companies: Get all favorite companies for current user"""
+  getFavoriteCompanies: [Company!]!
 
   """🔍 Job Applications: Get a specific job application by ID"""
   getJobApplicationById(id: String!): JobApplicationType
@@ -396,11 +419,20 @@ input UpdateApplicationStageInputDto {
 }
 
 input UpdateCompanyInput {
+  """Company note content"""
+  companyNote: String
+
   """Company description"""
   description: String
 
   """Company ID"""
   id: String!
+
+  """Mark company as blacklisted"""
+  isBlacklisted: Boolean
+
+  """Mark company as favorite"""
+  isFavorite: Boolean
 
   """Company name"""
   name: String

@@ -8,4 +8,8 @@ export const ValidationConstants = {
 
   // Email related
   VERIFICATION_CODE_LENGTH: 6,
+
+  // Company Note related
+  COMPANY_NOTE_MIN_LENGTH: 1, // Only when content is provided
+  COMPANY_NOTE_MAX_LENGTH: 5000,
 };

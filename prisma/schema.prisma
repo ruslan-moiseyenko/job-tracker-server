@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
@@ -15,24 +9,21 @@ datasource db {
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  email              String   @unique
-  password           String? // Make password optional for OAuth users
-  firstName          String?  @map("first_name")
-  lastName           String?  @map("last_name")
-  lastActiveSearchId String?  @map("last_active_search_id") // for quick access to the last active search
-  provider           String? // OAuth provider (e.g., 'google', 'github')
-  providerId         String?  @map("provider_id") // OAuth provider's user ID
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  // relations
-  jobSearches         JobSearch[]
+  id                  String                @id @default(uuid())
+  email               String                @unique
+  password            String?
+  firstName           String?               @map("first_name")
+  lastName            String?               @map("last_name")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+  provider            String?
+  providerId          String?               @map("provider_id")
+  lastActiveSearchId  String?               @map("last_active_search_id")
   applicationStages   ApplicationStage[]
-  companies           Company[] // Add companies relation
-  companyNotes        CompanyNote[]
   comments            Comment[]
+  companies           Company[]
   event               Event[]
+  jobSearches         JobSearch[]
   token               Token[]
   userOAuthConnection UserOAuthConnection[]
 
@@ -41,35 +32,30 @@ model User {
 
 model UserOAuthConnection {
   id          String   @id @default(uuid())
-  provider    String // OAuth provider (e.g., 'google', 'github')
-  providerId  String // OAuth provider's user ID
-  displayName String? // User's display name from provider
-  avatarUrl   String? // User's avatar URL from provider
-  userData    Json? // Additional data from provider (optional)
+  provider    String
+  providerId  String
+  userData    Json?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relation to user
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id")
+  avatarUrl   String?
+  displayName String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
   @@index([userId])
   @@map("user_oauth_connections")
 }
 
-// for every new job search
 model JobSearch {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // relations
+  id           String           @id @default(uuid())
+  title        String
+  description  String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
   userId       String           @map("user_id")
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   applications JobApplication[]
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
@@ -84,75 +70,67 @@ model Token {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([expDate]) // For cleanup of expired tokens
+  @@index([expDate])
   @@map("tokens")
 }
 
 model Company {
-  id          String   @id @default(uuid())
-  name        String
-  website     String?
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // relations
-  applications         JobApplication[]
-  notes                CompanyNote[]
+  id                   String                 @id @default(uuid())
+  name                 String
+  website              String?
+  description          String?
+  companyNote          String?                @map("company_note")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  userId               String                 @map("user_id")
+  isBlacklisted        Boolean                @default(false) @map("is_blacklisted")
+  isFavorite           Boolean                @default(false) @map("is_favorite")
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyContactPerson CompanyContactPerson[]
   links                CompanyLink[]
-  // User ownership (for Phase 1, when companies are user-specific)
-  userId               String                 @map("user_id")
-  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications         JobApplication[]
 
-  @@unique([userId, name]) // Each user can have unique company names
-  @@index([userId, name]) // compound index for searchCompanies function
-  @@index([userId]) // for user filtering
+  @@unique([userId, name])
+  @@index([userId, name])
+  @@index([userId])
+  @@index([userId, isFavorite])
+  @@index([userId, isBlacklisted])
   @@map("companies")
 }
 
-// links for a company (off site, profiles, job-boards, ect...)
 model CompanyLink {
-  id    String   @id @default(uuid())
-  url   String
-  title String?
-  type  LinkType // link type (off site, LinkedIn, GitHub и т.д.)
-
-  // connection to the company
-  companyId String  @map("company_id")
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(uuid())
+  url       String
+  title     String?
+  type      LinkType
+  companyId String   @map("company_id")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@map("company_links")
 }
 
-// for specific vacancy
 model JobApplication {
-  id              String   @id @default(uuid())
-  positionTitle   String?  @map("position_title")
-  jobDescription  String?  @map("job_description") // to keep formatted job description
-  jobLinks        String[] @map("job_links") // array of links to the job description
-  applicationDate DateTime @default(now()) @map("application_date")
-  customColor     String?  @map("custom_color") // color for the whole row in a table
-  salary          Int? // optional salary field
-
-  // relations
-  jobSearchId    String            @map("job_search_id")
-  jobSearch      JobSearch         @relation(fields: [jobSearchId], references: [id], onDelete: Cascade)
-  companyId      String            @map("company_id")
-  company        Company           @relation(fields: [companyId], references: [id])
-  currentStageId String?           @map("current_stage_id")
-  currentStage   ApplicationStage? @relation(fields: [currentStageId], references: [id])
-
-  comments       Comment[]
-  contactPersons JobApplicationContactPerson[]
-  Event          Event[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              String                        @id @default(uuid())
+  positionTitle   String?                       @map("position_title")
+  jobDescription  String?                       @map("job_description")
+  jobLinks        String[]                      @map("job_links")
+  applicationDate DateTime                      @default(now()) @map("application_date")
+  customColor     String?                       @map("custom_color")
+  jobSearchId     String                        @map("job_search_id")
+  companyId       String                        @map("company_id")
+  currentStageId  String?                       @map("current_stage_id")
+  createdAt       DateTime                      @default(now()) @map("created_at")
+  updatedAt       DateTime                      @updatedAt @map("updated_at")
+  salary          Int?
+  comments        Comment[]
+  Event           Event[]
+  contactPersons  JobApplicationContactPerson[]
+  company         Company                       @relation(fields: [companyId], references: [id])
+  currentStage    ApplicationStage?             @relation(fields: [currentStageId], references: [id])
+  jobSearch       JobSearch                     @relation(fields: [jobSearchId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([jobSearchId])
@@ -161,22 +139,18 @@ model JobApplication {
   @@map("job_applications")
 }
 
-// adjustable stages
 model ApplicationStage {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-  color       String?
-  order       Int // stages order
-
-  // relations
+  id           String           @id @default(uuid())
+  name         String
+  description  String?
+  color        String?
+  order        Int
   userId       String?          @map("user_id")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
   user         User?            @relation(fields: [userId], references: [id])
-  applications JobApplication[]
   Event        Event[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  applications JobApplication[]
 
   @@unique([userId, name])
   @@unique([userId, order])
@@ -184,143 +158,105 @@ model ApplicationStage {
   @@map("application_stages")
 }
 
-// company's representative
+// TODO: CHECK IF THIS IS NEEDED
 model ContactPerson {
-  id          String  @id @default(uuid())
-  firstName   String? @map("first_name")
-  lastName    String? @map("last_name")
-  position    String?
-  email       String?
-  phone       String?
-  socialLinks Json?   @map("social_links")
-
-  // relations
-  applications JobApplicationContactPerson[]
+  id           String                        @id @default(uuid())
+  firstName    String?                       @map("first_name")
+  lastName     String?                       @map("last_name")
+  position     String?
+  email        String?
+  phone        String?
+  socialLinks  Json?                         @map("social_links")
+  createdAt    DateTime                      @default(now()) @map("created_at")
+  updatedAt    DateTime                      @updatedAt @map("updated_at")
   companies    CompanyContactPerson[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  applications JobApplicationContactPerson[]
 
   @@index([email])
-  @@index([lastName, firstName]) // For name-based searches
+  @@index([lastName, firstName])
   @@map("contact_persons")
 }
 
-// connections between a contact person and a company
 model CompanyContactPerson {
   id              String        @id @default(uuid())
   companyId       String        @map("company_id")
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contactPersonId String        @map("contact_person_id")
-  contactPerson   ContactPerson @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
   notes           String?
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactPerson   ContactPerson @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, contactPersonId])
   @@map("company_contact_persons")
 }
 
-// connection between application and a contact person
 model JobApplicationContactPerson {
   id               String         @id @default(uuid())
   jobApplicationId String         @map("job_application_id")
-  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
   contactPersonId  String         @map("contact_person_id")
-  contactPerson    ContactPerson  @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
   notes            String?
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  contactPerson    ContactPerson  @relation(fields: [contactPersonId], references: [id], onDelete: Cascade)
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
 
   @@unique([jobApplicationId, contactPersonId])
   @@map("job_application_contact_persons")
 }
 
-// comments to specific application
 model Comment {
-  id      String @id @default(uuid())
-  content String
-
-  // relations
+  id               String         @id @default(uuid())
+  content          String
   jobApplicationId String         @map("job_application_id")
-  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
   userId           String         @map("user_id")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
   user             User           @relation(fields: [userId], references: [id])
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
+  // TODO: check if needed to add compound index
   @@index([jobApplicationId])
-  @@index([createdAt]) // For chronological sorting
+  @@index([createdAt])
   @@map("comments")
 }
 
-// notes, black/white list indicators
-model CompanyNote {
-  id            String  @id @default(uuid())
-  content       String
-  isBlacklisted Boolean @default(false) @map("is_blacklisted")
-  isFavorite    Boolean @default(false) @map("is_favorite")
-
-  // relations
-  companyId String  @map("company_id")
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  userId    String  @map("user_id")
-  user      User    @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([companyId, userId]) // only one note per company per user
-  @@index([isBlacklisted])
-  @@index([isFavorite])
-  @@map("company_notes")
-}
-
 model Event {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  startTime   DateTime  @map("start_time")
-  endTime     DateTime? @map("end_time")
-  location    String?
-  isAllDay    Boolean   @default(false) @map("is_all_day")
-  color       String?
-
+  id                 String            @id @default(uuid())
+  title              String
+  description        String?
+  startTime          DateTime          @map("start_time")
+  endTime            DateTime?         @map("end_time")
+  location           String?
+  isAllDay           Boolean           @default(false) @map("is_all_day")
+  color              String?
   userId             String            @map("user_id")
-  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobApplicationId   String?           @map("job_application_id")
-  jobApplication     JobApplication?   @relation(fields: [jobApplicationId], references: [id], onDelete: SetNull)
   applicationStageId String?           @map("application_stage_id")
+  recurringPattern   String?           @map("recurring_pattern")
+  recurringEventId   String?           @map("recurring_event_id")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  reminders          EventReminder[]
   applicationStage   ApplicationStage? @relation(fields: [applicationStageId], references: [id])
-
-  recurringPattern String? @map("recurring_pattern") // example: "RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR"
-  recurringEventId String? @map("recurring_event_id") // ID parent's recurring event
-
-  reminders EventReminder[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  jobApplication     JobApplication?   @relation(fields: [jobApplicationId], references: [id])
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([jobApplicationId])
-  @@index([startTime]) // For date range queries
-  @@index([recurringEventId]) // For finding recurring event instances
+  @@index([startTime])
+  @@index([recurringEventId])
   @@map("events")
 }
 
 model EventReminder {
   id               String           @id @default(uuid())
-  timeBeforeEvent  Int              @map("time_before_event") // in minutes
+  timeBeforeEvent  Int              @map("time_before_event")
   notificationType NotificationType @map("notification_type")
-
-  eventId String @map("event_id")
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  eventId          String           @map("event_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  event            Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@map("event_reminders")
@@ -333,7 +269,7 @@ enum NotificationType {
 }
 
 enum LinkType {
-  WEBSITE // Official site
+  WEBSITE
   LINKEDIN
   GITHUB
   GLASSDOOR
