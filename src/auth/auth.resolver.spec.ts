@@ -7,6 +7,7 @@ import { User } from '@prisma/client';
 import { GqlContext } from '../common/types/graphql.context';
 import { LoginInput, RefreshTokenInput, RegisterInput } from './auth.dto';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended'; // Полезно для моков контекста
+import { Response } from 'express';
 
 // Мок AuthService
 const mockAuthService = {
@@ -33,6 +34,11 @@ const mockUser: User = {
   createdAt: new Date(),
   updatedAt: new Date(),
 };
+
+// Mock context for GraphQL operations
+const mockContext: DeepMockProxy<GqlContext> = mockDeep<GqlContext>();
+const mockResponse: DeepMockProxy<Response> = mockDeep<Response>();
+mockContext.res = mockResponse;
 
 describe('AuthResolver', () => {
   let resolver: AuthResolver;
@@ -82,9 +88,13 @@ describe('AuthResolver', () => {
       };
       authService.register.mockResolvedValue(expectedPayload);
 
-      const result = await resolver.register(input, userAgent);
+      const result = await resolver.register(input, userAgent, mockContext);
 
-      expect(authService.register).toHaveBeenCalledWith(input, userAgent);
+      expect(authService.register).toHaveBeenCalledWith(
+        input,
+        userAgent,
+        mockContext.res,
+      );
       expect(result).toEqual(expectedPayload);
     });
   });
@@ -96,9 +106,13 @@ describe('AuthResolver', () => {
       const expectedPayload = { accessToken: 'a', refreshToken: 'r' };
       authService.login.mockResolvedValue(expectedPayload);
 
-      const result = await resolver.login(input, userAgent);
+      const result = await resolver.login(input, userAgent, mockContext);
 
-      expect(authService.login).toHaveBeenCalledWith(input, userAgent);
+      expect(authService.login).toHaveBeenCalledWith(
+        input,
+        userAgent,
+        mockContext.res,
+      );
       expect(result).toEqual(expectedPayload);
     });
   });
@@ -107,44 +121,59 @@ describe('AuthResolver', () => {
     it('should call authService.refreshTokens with input and userAgent and return payload', async () => {
       const input: RefreshTokenInput = { refreshToken: 'old-refresh' };
       const userAgent = 'test-agent-refresh';
-      const expectedPayload = {
-        accessToken: 'new-a',
-        refreshToken: 'new-r',
-        user: mockUser,
-      };
-      authService.refreshTokens.mockResolvedValue(expectedPayload);
+      const expectedResponse = { success: true };
+      authService.refreshTokens.mockResolvedValue(undefined); // refreshTokens doesn't return anything
 
-      const result = await resolver.refreshToken(input, userAgent);
+      const result = await resolver.refreshToken(input, userAgent, mockContext);
 
       expect(authService.refreshTokens).toHaveBeenCalledWith(
         input.refreshToken,
         userAgent,
+        mockContext.res,
       );
-      expect(result).toEqual(expectedPayload);
+      expect(result).toEqual(expectedResponse);
     });
   });
 
   describe('logout', () => {
     const refreshToken = 'refresh-token-to-logout';
-    // Глубокий мок для контекста
-    const mockContext: DeepMockProxy<GqlContext> = mockDeep<GqlContext>();
+    // Create a separate mock context for logout tests
+    const logoutMockContext: DeepMockProxy<GqlContext> = mockDeep<GqlContext>();
 
     beforeEach(() => {
-      // Сбрасываем мок контекста перед каждым тестом в этом describe
-      mockContext.req.headers = {}; // Сбрасываем заголовки
+      // Reset mocks and setup default values
+      jest.clearAllMocks();
+      logoutMockContext.req.headers = {};
+      logoutMockContext.req.cookies = {};
+      // Ensure these properties return undefined by default
+      Object.defineProperty(logoutMockContext.req.cookies, 'refresh_token', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(logoutMockContext.req.cookies, 'access_token', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
     });
 
     it('should call authService.logout with refresh token, user ID and access token from header', async () => {
       const accessToken = 'access-token-from-header';
-      mockContext.req.headers['authorization'] = `Bearer ${accessToken}`;
+      logoutMockContext.req.headers['authorization'] = `Bearer ${accessToken}`;
       authService.logout.mockResolvedValue(true);
 
-      const result = await resolver.logout(refreshToken, mockUser, mockContext);
+      const result = await resolver.logout(
+        refreshToken,
+        mockUser,
+        logoutMockContext,
+      );
 
       expect(authService.logout).toHaveBeenCalledWith(
         refreshToken,
         mockUser.id,
         accessToken,
+        logoutMockContext.res,
       );
       expect(result).toBe(true);
     });
@@ -153,27 +182,37 @@ describe('AuthResolver', () => {
       // Заголовок не установлен
       authService.logout.mockResolvedValue(true);
 
-      const result = await resolver.logout(refreshToken, mockUser, mockContext);
+      const result = await resolver.logout(
+        refreshToken,
+        mockUser,
+        logoutMockContext,
+      );
 
       expect(authService.logout).toHaveBeenCalledWith(
         refreshToken,
         mockUser.id,
         undefined,
+        logoutMockContext.res,
       );
       expect(result).toBe(true);
     });
 
     it('should call authService.logout without access token if header format is invalid', async () => {
-      mockContext.req.headers['authorization'] =
+      logoutMockContext.req.headers['authorization'] =
         `InvalidFormat ${refreshToken}`;
       authService.logout.mockResolvedValue(true);
 
-      const result = await resolver.logout(refreshToken, mockUser, mockContext);
+      const result = await resolver.logout(
+        refreshToken,
+        mockUser,
+        logoutMockContext,
+      );
 
       expect(authService.logout).toHaveBeenCalledWith(
         refreshToken,
         mockUser.id,
         undefined,
+        logoutMockContext.res,
       );
       expect(result).toBe(true);
     });
@@ -200,20 +239,29 @@ describe('AuthResolver', () => {
     it('should call authService.handleGoogleAuth with code and userAgent', async () => {
       const code = 'google-code-123';
       const userAgent = 'google-cb-agent';
-      const expectedPayload = {
+      const serviceResponse = {
         accessToken: 'g-a',
         refreshToken: 'g-r',
         user: mockUser,
       };
-      authService.handleGoogleAuth.mockResolvedValue(expectedPayload);
+      const expectedResponse = {
+        success: true,
+        user: mockUser,
+      };
+      authService.handleGoogleAuth.mockResolvedValue(serviceResponse);
 
-      const result = await resolver.googleAuthCallback(code, userAgent);
+      const result = await resolver.googleAuthCallback(
+        code,
+        userAgent,
+        mockContext,
+      );
 
       expect(authService.handleGoogleAuth).toHaveBeenCalledWith(
         code,
         userAgent,
+        mockContext.res,
       );
-      expect(result).toEqual(expectedPayload);
+      expect(result).toEqual(expectedResponse);
     });
   });
 

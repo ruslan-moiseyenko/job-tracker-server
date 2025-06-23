@@ -374,7 +374,7 @@ export class AuthService {
 
       // Transaction to ensure data consistency
       try {
-        return await this.prisma.$transaction(async (prisma) => {
+        return await this.prisma.$transaction(async (tx) => {
           let isNewUser = false;
 
           // If user doesn't exist, create one
@@ -387,7 +387,7 @@ export class AuthService {
             const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
             try {
-              user = await prisma.user.create({
+              user = await tx.user.create({
                 data: {
                   email: oauthData.email,
                   password: hashedPassword,
@@ -409,7 +409,7 @@ export class AuthService {
 
           // Create OAuth connection for the user
           try {
-            await prisma.userOAuthConnection.create({
+            await tx.userOAuthConnection.create({
               data: {
                 provider: oauthData.provider,
                 providerId: oauthData.providerId,
@@ -438,6 +438,7 @@ export class AuthService {
           if (isNewUser) {
             await this.applicationStageService.createDefaultStagesForUser(
               user.id,
+              tx,
             );
           }
 

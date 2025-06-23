@@ -388,7 +388,10 @@ export class ApplicationStageService {
    */
   async createDefaultStagesForUser(
     userId: string,
+    prismaClient?: any,
   ): Promise<ApplicationStage[]> {
+    const client = prismaClient || this.prisma;
+
     const defaultStages = [
       {
         name: 'Applied',
@@ -429,7 +432,7 @@ export class ApplicationStageService {
 
     return Promise.all(
       defaultStages.map((stage) =>
-        this.prisma.applicationStage.create({ data: stage }),
+        client.applicationStage.create({ data: stage }),
       ),
     );
   }
