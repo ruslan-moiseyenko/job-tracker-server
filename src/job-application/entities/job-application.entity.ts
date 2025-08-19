@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
 import { IsString, IsOptional, IsDate, IsArray, IsInt } from 'class-validator';
-import { CompanyType } from './company.entity';
+import { Company } from '../../company/entities/company.entity';
 
 @ObjectType()
 export class ApplicationStageType {
@@ -70,8 +70,8 @@ export class JobApplicationType {
   applicationDate: Date;
 
   // Relations
-  @Field(() => CompanyType)
-  company: CompanyType;
+  @Field(() => Company)
+  company: Company;
 
   @Field(() => ApplicationStageType, { nullable: true })
   currentStage?: ApplicationStageType;

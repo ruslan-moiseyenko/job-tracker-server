@@ -55,17 +55,6 @@ input CompanyInput {
   newCompany: NewCompanyInput
 }
 
-type CompanyType {
-  companyNote: String
-  createdAt: DateTime!
-  description: String
-  id: ID!
-  industry: String
-  name: String!
-  updatedAt: DateTime!
-  website: String
-}
-
 type ContactType {
   email: String
   firstName: String
@@ -168,7 +157,7 @@ type GqlUser {
 
 type JobApplicationType {
   applicationDate: DateTime!
-  company: CompanyType!
+  company: Company!
   createdAt: DateTime!
   currentStage: ApplicationStageType
   customColor: String
